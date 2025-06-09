@@ -1,0 +1,205 @@
+[SC:R Colors v3.0] 설명서 25/06/07 for v1.23.10.13515
+
+컬러 오프셋 목록
+Unit Color (0x581D76) : 플레이어 컬러 [EUD]
+Minimap Color (0x581DD6) : 플레이어 미니맵 컬러 [EUD]
+Selection Circle Color (0x581D6A) : 선택원 색상 [EUD]
+Wireframe Palette (0x------) : 와이어프레임 팔레트
+Wireframe Color (0x515230) : 와이어프레임 색상
+Selection Circle Palette (0x5240BD) : 선택원 팔레트
+Text Palette (0x6CE000) : 텍스트 색상코드 팔레트
+Misc Palette (0x6CEB20) : 초상화 노이즈, 버튼 설명 박스, 미니맵의 자기유닛 및 자원 표시 색상
+256 Color Palette (0x1505E670) : 256색 전역 팔레트
+Dragbox Color Filter (0x------) : 드래그 박스 색조
+Shadow Color Filter (0x------) : 그림자 색조 (dark.pcx)
+Screen Color Filter (0x------) : 화면 색조
+
+
+플러그인 옵션 설명 (.eds)
+<Mode : Value> : EUD 색상 변경을 64비트에서도 적용할지의 여부 (0 입력시 32비트에서만 적용, 기본값 1)
+ex) Mode : 0
+
+<Condition : (s1,dw2,dw3)> : 각 색상 단락의 write 조건을 설정함 (Memory(dw2,Exactly,dw3) 만족시 s1 단락 변경을 적용함)
+s1 : 조건을 적용할 단락명, dw2 : 오프셋, dw3 : 값 (조건을 지정하지 않은 단락은 게임 시작시 단락 변경을 적용함)
+ex) Condition : (Screen Color Filter,0x58F454,1), (Misc Palette,0x58F458,0x12345678)
+
+<Recover : Offset Value> : 비복구 영역의 복구 조건 (Memory(Offset,Exactly,Value) 만족시 복구실행, 기본값 0x58F450, 1)
+ex) Recover : 0x58F450, 1
+※ 복구는 게임 종료 직전에 실행하는 것을 권장함 (비복구 영역 변경보다 복구를 먼저 하면 안됨)
+
+<Unit Color : (b1,b2)> : [EUD] 플레이어 유닛 컬러를 변경함 (b1=0~11)
+ex) Unit Color : (0,0xFF), (11,0x80)
+
+<Minimap Color : (b1,b2)> : [EUD] 플레이어 미니맵 컬러를 변경함 (b1=0~11)
+ex) Minimap Color : (1,0x6F)
+
+<Selection Circle Color : (b1,b2)> : [EUD] 선택원 컬러를 변경함 (b1=0~11, 선택원 팔레트값을 참조함)
+ex) Selection Circle Color : (1,1), (2,2), (3,6)
+
+<Wireframe Palette : (b1,b2)> : 와이어프레임 팔레트를 변경함 (b1=0~23,104~147)
+ex) Wireframe Palette : (0,0xFF), (2,0xFF), (5,0x80)
+
+<Wireframe Color : (b1,b2)> : [비복구] 종족별 와이어프레임 컬러를 변경함 (b1=0~135, 0~39:테프1, 40~79:테프2, 80~95:쉴드, 96~119:저그)
+ex) Wireframe Color : (0,0xFF), (2,0xFF), (4,0xFF), (6,0xFF)
+
+<Selection Circle Palette : (b1,b2)> : [비복구] 선택원 팔레트를 변경함 (b1=0~2, 5~6, 0:화면출력 13번의 색상을 결정함)
+ex) Selection Circle Palette : (0,0x80), (1,0x0D), (2,0xF7), (6,0xFF), (5,0x86)
+
+<Text Palette : (b1,b2)> : 텍스트 색상코드 팔레트를 변경함 (b1=컬러코드 값, 0x2~0x8, 0xE~0x11, 0x15~0x19, 0x1B~0x1F)
+ex) Text Palette : (0x02,0x0), (0x1F,0x0D)
+
+<Misc Palette : (c1,b2)> : 초상화 노이즈, 버튼 설명 박스, 미니맵의 자기유닛 및 자원 표시 색상 등을 변경함
+초상화 노이즈 색상 : c1 = P0~P15, 설명 박스 색상(+0~+15) : c1 = fill(내부,+15), line(테두리,+16), 미니맵 색상 : c1 = self(자기유닛,+18), res(자원유닛,+25)
+ex) Misc Palette : (P0,0x80), (res,0x0), (Line,0xFF)
+
+<256 Color Palette : (b1,dw2)> : 256색 전역 팔레트를 변경함 (b1=0~255)
+ex) 256 Color Palette : (0x00,0x00FFFFFF), (255,0x00000000), (0x80,0x00FF00FF)
+
+<Dragbox Color Filter : (c1,f2)> : [비복구] 드래그 박스의 색조를 변경함 (c1=R,G,B,A, f2=실수형)
+ex) Dragbox Color Filter : (B,2.0), (A,0.75)
+
+<Shadow Color Filter : (c1,f2)> : [비복구] 그림자의 색조를 변경함 (c1=R,G,B,A, f2=실수형, 화면출력 10번의 색상을 결정함)
+ex) Shadow Color Filter : (G,1.0)
+
+<Screen Color Filter : (c1,f2)> : [비복구] 화면 색조를 변경함 (c1=R,G,B,A, f2=실수형, 기본값 모두 1.0)
+ex) Screen Color Filter : (R,1.25), (B,1.2), (A,0.8)
+
+※ 실수형 입력칸에 정수를 입력하는 경우, 입력값/255의 수치로 변환되서 입력됨
+※ 각 value 입력칸 (b2, dw2, f2)에 _Offset 형식으로 값 입력시 해당 오프셋 값을 사용해서 write를 수행함
+Mask=0xFF, index별로 개별적으로 적용 : Unit Color, Minimap Color, Selection Circle Color
+Mask=0xFFFFFFFF, index별로 개별적으로 적용 : Selection Circle Palette, Text Palette, 256 Color Palette, Dragbox Color Filter, Shadow Color Filter, Screen Color Filter
+Mask=0xFFFFFFFF, 4바이트를 함께 적용함 (각 index는 byte단위지만, +0~+3를 Offset에서 읽어서 한번에 write) : Wireframe Palette, Wireframe Color, Misc Palette
+※ Dragbox Color Filter, Shadow Color Filter, Screen Color Filter의 경우, 삽입할 Float값을 hex로 변환해서 오프셋에 넣어야함 (변환용 계산기 : https://gregstoll.com/~gregstoll/floattohex/) 
+ex) [scr_colors]
+mode : 0
+recover : 0x58F450, 1
+Unit Color : (0,_0x58F454), (1,0xE), (2,_0x58F458), (3,0x80)
+Minimap Color : (1,0xE), (2,_0x58F45C), (3,0x80)
+Selection Circle Color : (0,_0x58F460), (1,6)
+Selection Circle Palette : (0,_0x58F464), (2,0xE), (6,_0x58F468)
+Wireframe Color : (80,156), (81,157), (82,158), (83,159), (84,_0x58F46C), (88,_0x58F470), (92,_0x58F474)
+Wireframe Palette : (156,_0x58F478), (160,0x9C), (161,0x13), (162,0x54), (163,0x87), (164,_0x58F47C), (168,0x75), (169,0x4D), (170,0x9A), (171,0x80)
+Text Palette : (0x10,_0x58F490), (0x11,0xF7)
+Misc Palette : (line,0xFF), (fill,_0x58F494)
+256 Color Palette : (0xF7,_0x58F498), (0xFF,0x00808080)
+Dragbox Color Filter : (A,0.333), (B,_0x58F4A4)
+Shadow Color Filter : (G,0xFF), (B,0xFF), (R,_0x58F4A8)
+Screen Color Filter : (R,_0x58F4AC), (A,1000000.0)
+Condition : (Unit Color,0x58F480,1), (Minimap Color,0x58F484,1), (Selection Circle Color,0x58F488,1), (Selection Circle Palette,0x58F488,1), (Wireframe Palette,0x58F48C,1), (Wireframe Color,0x58F48C,1), (Text Palette,0x58F49C,1), (Misc Palette,0x58F49C,1), (256 Color Palette,0x58F49C,1) ,(Dragbox Color Filter,0x58F4A0,1), (Shadow Color Filter,0x58F4A0,1), (Screen Color Filter,0x58F4A0,1) 
+
+
+색상 오프셋 계통도 (왼쪽이 오른쪽을 참조함)
+256 Color Palette : 정수형, RGB
+Unit Color, Minimap Color, Misc Palette → 256 Color Palette
+Selection Circle Color → Selection Circle Palette → 256 Color Palette
+Text Color Code → Text Palette → 256 Color Palette
+Wireframe Color → Selection Circle Palette → 256 Color Palette
+Screen Color, Dragbox Color, Shadow Color : float형, RGBA
+
+
+오프셋 이름 및 주소 (32bit/Size/Recoverable(자동복구)/Rewritable)
+Wait Timer : DB8714 / 8 * 4 / O / -
+Wait Timer flag : DB870C / 8 * 1 / O / -
+------------------------------------------
+Wireframe Palette : DB20B8 /  0~23, 104~115, 156~195 * 1 / O / O : DB20B8→DB6D75(Not Zero Mixed)
+Wireframe Color : B308A8 / 0~135 * 1 / X / O : B308A8→D16770→D8ff23(Unstable)→DAE510
+Selection Circle Palette : B95F43 / 0~2, 6 * 8 / X / O : B95F43→D2FD17→D9648D(Unstable)→DAFE6B
+Text Palette : DCB608 / 0~23 * 8 / O / O : DCB608~DCB6C8→DBD2C9~DBD2F9(Not Zero)→DB99F9~DB9A05→DB8BC5~DB8BC8→DB8838~DB8839→DB8755→DB871C(P3 Wait Timer)
+Misc Palette : DCB730 / 0~31 / O / O : DCB730~DCB74B→DBD313~DBD139→DB9A0B~DB9A0D→DB8BC9~DB8BCA→DB8839→DB8755→DB871C(P3 Wait Timer)
+256 Color Palette : BA9068 / 0~255 * 4 / O / O
+Dragbox Color Filter : B3CA58 / 4 * 4 / X / O : B3CA58→D197DD→D90B3F→DAE817
+Shadow Color Filter : B3CA68 / 4 * 4 / X / O : B3CA68→D197E1→D90B40→DAE817
+Screen Color Filter : B3CA88 / 4 * 4 / X / O : B3CA88→D197E9→D90B42→DAE818
+------------------------------------------
+Unit Color : 0x581D76 [EUD] / 12 * 8 
+Minimap Color : 0x581DD6 [EUD] / 12 * 1
+Selection Circle Color : 0x581D6A [EUD] / 12 * 1
+※ 2nd = ((1st - Address_WAIT)//4 + Address_WAIT_FLAG)
+
+
+오프셋별 Raw Data List ------------------------
+Unit Color : 6F A5 9F A4 9C 13 54 87 B9 88 86 33
+Minimap Color : 6F A5 9F A4 9C 13 54 87 B9 88 86 33
+Selection Circle Color : (자기자신 00, 동맹/중립 01, 적 02)으로 동맹상태에 따라 유동적
+
+Wireframe Palette : 
+87 75 8A A5 A5 A2 A2 A0 A0 29 AE 17 17 62 A4 A4 
+A3 A1 9C B1 1A 00 00 00
++ (104~115는 유동적, 156~195은 모두 00)
+
+Wireframe Color : 
+0A 0A 0A 0A 0A 0A 0A 00 0A 0A 00 00 0A 0A 00 01 
+0A 0A 01 01 0A 00 01 01 0A 01 01 01 00 01 01 01 
+00 01 01 01 01 01 01 01 0A 0A 0A 0A 0A 0A 0A 00 
+0A 0A 00 00 0A 00 00 00 0A 00 00 01 00 00 00 01 
+00 00 01 01 00 01 01 01 00 01 01 01 01 01 01 01 
+02 02 09 02 08 09 07 08 06 07 05 06 04 05 03 04 
+0E 06 07 08 13 0B 0D 06 13 0B 0A 10 01 12 14 10 
+01 12 14 0C 00 01 12 0A 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00
+
+Selection Circle Palette : (0)BA (1)6A (2) 62 (5)00 (6)00
+(B8 B9 B9) BA B9 BA 75 BD 6A 81 6D A6 6D A7 3D 3D 
+62 62 62 62 [-3~+16]
++ 10 27 00 00 68 68 4F 15 01 00 00 00 [+37~+48]
+
+Text Palette : (2)9B (3)A7 (4)FF (5)96 (6)AE (7)75 (8)6F (E)A5 (F)9F (10)A4 (11)9C 
+	(15)13 (16)54 (17)87 (18)B9 (19)88 (1B)86 (1C)33 (1D)4D (1E)9A (1F)80
+[0~+24*8]
+C0 9B 9A 95 43 00 00 28 56 A7 6D 65 5C 00 00 8A
+41 FF 53 97 47 00 00 8A 40 96 49 90 42 00 00 8A
+A8 AE 17 5E AA 00 00 8A B5 75 BA B9 B7 00 00 8A
+08 08 08 08 08 08 08 08 08 08 08 08 08 08 08 08
+8A 6F 17 5E AA 8A 8A 8A 28 A5 A2 2D A0 8A 8A 8A
+8A 9F 9E 9D B7 8A 8A 8A 8A A4 A3 A1 0E 8A 8A 8A
+8A 9C 1C 1A 13 8A 8A 8A 8A 13 12 11 57 8A 8A 8A
+8A 54 51 4E 4A 8A 8A 8A 8A 87 A6 81 93 8A 8A 8A
+B5 B9 B8 B7 B6 8A 8A 8A 8A 88 84 81 60 8A 8A 8A
+8A 86 72 70 69 8A 8A 8A 8A 33 7C 7A A0 8A 8A 8A
+8A 4D 26 23 22 8A 8A 8A 8A 9A 97 95 91 8A 8A 8A
+8A 88 84 81 60 8A 8A 8A 8A 80 34 31 2E 8A 8A 8A
+
+Misc Palette : (p0)FF (p1)54 (p2)54 (p3)53 (p4)51 (p5)99 (p6)4E (p7)96 (p8)4A (p9)49 
+(p10)47 (p11)90 (p12)EF (p13)42 (p14)8B (p15,fill)CF (line)A5 (self)75 (res)80
+[0~+32]
+FF 54 54 53 51 99 4E 96 4A 49 47 90 EF 42 8B CF
+A5 87 75 B9 AE 9C 7C 14 99 80 00 00 00 00 00 00
+
+256 Color Palette : 0x__RRGGBB
+00000000 003B2727 00472F2F 00533B37 004B332F 00432B2B 003B2727 00775753
+006F4F4B 00674B47 0073534F 00835F57 00936B63 00A3776B 003A003A 00190019
+0018242C 00142448 00142C5C 00143070 00243C68 0018407C 002C4C78 000808A8
+0030548C 00446084 001C54A0 00184CC4 002468BC 003C70B4 002064D0 003494DC
+005494E0 0054C4EC 00284434 003C6C40 00506C48 0050804C 005C8C50 0078A05C
+00180000 00341000 00500800 00483424 00544030 007C3414 006C4C34 00745840
+008C6848 009C7000 00A48058 00D46840 00B8AC18 00FC2424 00BC9464 00CCA870
+00D8C08C 00F4DC94 00E8DCAC 00FCFCAC 00F8F8CC 0000FCFC 0090E4F4 00C0FCFC
+000C0C0C 00101418 00201C1C 00302828 00243038 00443C38 0030404C 004C4C4C
+0040505C 00585858 00686868 006C8478 006C9468 007CA474 008C9498 0094B890
+00A8C498 00B0B0B0 00B0CCAC 00BCC0C4 00D0E0CC 00F0F0F0 0008101C 000C1828
+00081034 000C2034 00201038 00202834 00083444 00183048 00000060 00202854
+00144050 0014545C 00040484 00344C68 0030387C 00206470 0050507C 001C34A4
+00006C94 00405C98 0034808C 00547498 004454B8 001890B0 005C74B0 000404F4
+005478C8 005468FC 0084A4E0 006894FC 002CCCFC 0018FC10 0020000C 002C1C1C
+004C2424 00682C28 0084302C 00B81820 00AC3C34 00946868 00FC9064 00FCAC7C
+00FCE400 0040909C 005494A8 005CA4BC 0060B8CC 0080D8E8 00B0C4EC 0038FCFC
+007CFCFC 00A4FCFC 00080808 00101010 00181818 00282828 00343434 00383C4C
+00444444 00584848 00685858 00386874 005C6478 007C6060 00747484 009C8484
+007C8CAC 009498AC 00B89090 00E8B8B8 00148CF8 003C5410 00709020 0094B42C
+00642004 00501C48 00983408 00783068 009C4088 00CC480C 0034B8BC 003CDCDC
+00000010 00000024 00000034 00000048 00041860 0008288C 001818C8 002C2CE0
+002020E8 001450E8 002020FC 002478E8 003CACF8 00001400 00002800 00004400
+00006400 00088008 00249824 003C9C3C 0058B058 0068B868 0080C480 0094D494
+0024140C 00643C24 00845030 00945C38 00B47448 00C48454 00D49460 00ECB478
+00081014 000C1418 000C2C24 00181010 00201414 00402C2C 00684C44 00040404
+0010181C 00141C20 001C2024 001C2830 002C3840 00384854 004C5C68 00647C90
+00142028 00142830 00182C34 001C2C38 001C303C 00243844 00304454 0004100C
+00041814 00081C18 0008201C 000C2420 0010342C 00103C34 00104840 00302020
+003C2828 00483430 00141414 001C1820 00182028 00241C24 00242428 002C2C30
+00342C3C 003C383C 00303C48 00403444 00483C50 0034505C 00FF2323 00FF2323
+002B3B47 002F3F4B 00334353 00674B43 006F534B 007B5B53 0087635B 00FFFFFF
+
+Dragbox Color Filter : (R)3D808081(=0.0627451) (G)3F7CFCFD(=0.9882353) (B)3DC0C0C1(=0.09411765) (A)3F800000(=1.0)
+Shadow Color Filter : (R)00000000(=0.0) (G)00000000(=0.0) (B)00000000(=0.0) (A)3F800000(=1.0)
+Screen Color Filter : (R)3F800000(=1.0) (G)3F800000(=1.0) (B)3F800000(=1.0) (A)3F800000(=1.0)
+※ 3개 오프셋 모두 Float 형식으로 값을 저장함 (음수는 0으로 처리됨)
