@@ -5,16 +5,18 @@ output: ./output.scx
 [eudTurbo]
 
 
-:: [./scr_colors_3.py]
-:: Wireframe Color: (16, 20), (17, 20), (56, 20), (57, 20)
+[./scr_colors_3.py]
+Wireframe Color: (16, 20), (17, 20), (56, 20), (57, 20)
+Condition: (Wireframe Color, 58A364, 1)
+Recover: 58A364, 2
 [./main.eps]
 
 ::[wf_colors]
 
-[./scr_colors.py]
-Wireframe Color: 16, 20; 17, 20; 56, 20; 57, 20
-Wireframe Palette: 1, 164; 3, 85; 4, 83; 5, 85
-Selection Circle Palette: 0, 128
+:: [./scr_colors.py]
+:: Wireframe Color: 16, 20; 17, 20; 56, 20; 57, 20
+:: Wireframe Palette: 1, 164; 3, 85; 4, 83; 5, 85
+:: Selection Circle Palette: 0, 128
 
 ::[./scr_colors_3.py]
 ::Wireframe Color: (16, 19), (17, 19), (18, 20), (19, 20), (56, 19), (57, 19), (58, 20), (59, 20)

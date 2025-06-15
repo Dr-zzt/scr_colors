@@ -340,7 +340,6 @@ def onPluginStart():
 		for key, v in D.items():
 			i = 0
 			for epd, val in v.items():
-				print(epd, val)
 				Cp = (Addr[key]-Address_WAIT)//4+epd
 				PAct.append(SetDeaths(CEPD+i+MEMEPD*k,SetTo,Cp,0))
 				if isinstance(val, list):
@@ -397,7 +396,8 @@ def onPluginStart():
 	EUDEndIf()
 
 def beforeTriggerExec():
-	if EActused > 0:
+	if EActused > 0: # EUD Actions are used. Currently EUD actions are not supported so this part will be ignored.
+		assert False, "EUD Actions are not supported in this version of SCR Colors."
 		if mode > 0:
 			for key, v in EAct.items():
 				if Cond[key][0] == 0:
