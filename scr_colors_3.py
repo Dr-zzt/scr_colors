@@ -1,16 +1,10 @@
-# scr_colors v3.0.x 
-# Made by Ninfia, modified by Defender
-# Some code is from Armoha's MSQC
-import re
+# scr_colors v3.0 Made by Ninfia
 import struct
-from typing import TYPE_CHECKING
 from eudplib import *
-Address_RECOVER		= 0x58F450
-Address_VALUE		= 1
+Address_RECOVER = 0x58F450
+Address_VALUE = 1
 Address_WAIT		= 0xDB8714
-Address_WAIT_FLAG	= 0xDB870C
-if TYPE_CHECKING:
-	settings: dict[str, str] = {}
+Address_WAIT_FLAG   = 0xDB870C
 
 Size = { # a<=X<b, Valid Range
 	"uc" : [[0,12]],
@@ -96,16 +90,7 @@ Cond = { # Patch Condition
 	"sf" : [0,0],
 	"scf" : [0,0]
 }
-
-cond_act_pairs = []
-
-print("[SC:R Colors v3.0.x] Current Version : v1.23.10.13515 (Modified from v. 25/06/07)")
-
-def check_in_range(off, key):
-	for loc in Size[key]:
-		if loc[0] <= off < loc[1]:
-			return True
-	return False
+print("[SC:R Colors v3.0] Current Version : v1.23.10.13515 (25/06/07)")
 
 def float_to_hex(f):
 	return hex(struct.unpack('<I', struct.pack('<f', f))[0])
@@ -113,13 +98,13 @@ def float_to_hex(f):
 def toNum(s):
 	try:
 		return int(s)
-	except ValueError:
-		return int(s, 16)
+	except:
+		return int(s,16)
 
 def toFloat(s):
 	try:
-		return float_to_hex(toNum(s) / 255)
-	except ValueError:
+		return float_to_hex(toNum(s)/255)
+	except:
 		return float_to_hex(float(s))
 
 def isOffset(s):
@@ -134,7 +119,7 @@ def getOffset(s):
 def getRaw(key,epd):
 	return (Raw[key][epd*4+3]<<24)+(Raw[key][epd*4+2]<<16)+(Raw[key][epd*4+1]<<8)+Raw[key][epd*4]
 
-def parse_options(t):
+def parseOption(t):
 	ret = []
 	fpos, rpos = 0, 0
 	for i, c in enumerate(t):
@@ -173,131 +158,243 @@ VAct = {
 EActused = 0
 lshmask = [0xFFFFFF00,0xFFFF00FF,0xFF00FFFF,0x00FFFFFF]
 bitmask = [0x000000FF,0x0000FF00,0x00FF0000,0xFF000000]
-
-# parsing format
-# (0) mode: 0 or 1
-# (1) condition1; condition2; ... : label1, label2, 
-# (2) label: offset, value; offset, value; ...
-
-
-for key, value in settings.items():
-	key = key.lower().strip()
-	sectors = {"unit color":"uc","minimap color":"mc","selection circle color":"scc","wireframe palette":"wfp","wireframe color":"wfc","selection circle palette":"scp","text palette":"tp","misc palette":"mp","256 color palette":"256p","dragbox color filter":"df","shadow color filter":"sf","screen color filter":"scf"}
-	con_final, act_final = [], []
-	match key:
-		case 'mode':
-			mode = int(value)
-			continue
-
-		case "unit color" | "minimap color" | "selection circle color":
-			# Editable with classic EUDs. Todo later.
-			raise NotImplementedError("Unit color, minimap color, and selection circle color are not implemented yet.")
-		
-		case "wireframe palette" | "wireframe color" | "selection circle palette" | "text palette" | "256 color palette":
-			shkey = {
-				"wireframe palette": "wfp", "wireframe color": "wfc", "selection circle palette": "scp", "text palette": "tp", "256 color palette": "256p"
-			}[key]
-			recover_needed = shkey in Recover
-			ovs = value.split(";")
-			for ov in ovs:
-				offset, val = ov.split(",")
-				offset = toNum(offset)
-				if key == "selection circle palette":
-					epd, lsh = 8 * offset // 4, 3
+for K, V in settings.items():
+	if K.lower() == 'mode':
+		mode = int(V)
+	if K.lower() == 'condition':
+		sector = {"unit color":"uc","minimap color":"mc","selection circle color":"scc","wireframe palette":"wfp","wireframe color":"wfc","selection circle palette":"scp","text palette":"tp","misc palette":"mp","256 color palette":"256p","dragbox color filter":"df","shadow color filter":"sf","screen color filter":"scf"}
+		t = parseCond(V)
+		for k, v in enumerate(t):
+			if (sector.get(v[0]) != None):
+				key, off, val = sector[v[0]], toNum(v[1]), toNum(v[2])
+				Cond[key][0], Cond[key][1] = off, val
+	if K.lower() == 'recover':
+		t = V.split(",")
+		Address_RECOVER, Address_VALUE = toNum(t[0]), toNum(t[1])
+	if K.lower() == 'unit color':
+		key = "uc"
+		t = parseOption(V)
+		for k, v in enumerate(t):
+			off = toNum(v[0])
+			ptr = Addr[key]+8*off
+			epd, lsh = EPD(ptr), (ptr)%4
+			check = 0
+			for loc in Size[key]:
+				if (loc[0] <= off and off < loc[1]):
+					check = 1
+			if (check == 1):
+				if (isOffset(v[1]) == True):
+					VAct[key].append([epd,EPD(getOffset(v[1])),1<<(lsh*8),bitmask[lsh]])
 				else:
-					epd, lsh = divmod(offset, 4)
-
-				if shkey == "tp":
-					colorcode = {0x02:0x01,0x03:0x09,0x04:0x11,0x05:0x19,0x06:0x21,0x07:0x29,0x08:0x41,0x0E:0x49,0x0F:0x51,0x10:0x59,0x11:0x61,0x15:0x69,0x16:0x71,0x17:0x79,0x18:0x81,0x19:0x89,0x1B:0x91,0x1C:0x99,0x1D:0xA1,0x1E:0xA9,0x1F:0xB9}
-					assert offset in colorcode, f"Invalid color code {offset} for {key}."
-					offset = colorcode[offset]
-				elif shkey == "mp":
-					misccode = {"p0":0x0,"p1":0x1,"p2":0x2,"p3":0x3,"p4":0x4,"p5":0x5,"p6":0x6,"p7":0x7,"p8":0x8,"p9":0x9,"p10":0xA,"p11":0xB,"p12":0xC,"p13":0xD,"p14":0xE,"p15":0xF,"fill":0xF,"line":0x10,"self":0x12,"res":0x19}
-					assert offset in misccode, f"Invalid misc code {offset} for {key}."
-					offset = misccode[offset]
+					EAct[key].append(SetDeathsX(epd,SetTo,toNum(v[1])<<(lsh*8),0,bitmask[lsh]))
+				EActused = 1
+	if K.lower() == 'minimap color':
+		key = "mc"
+		t = parseOption(V)
+		for k, v in enumerate(t):
+			off = toNum(v[0])
+			ptr = Addr[key]+off
+			epd, lsh = EPD(ptr), (ptr)%4
+			check = 0
+			for loc in Size[key]:
+				if (loc[0] <= off and off < loc[1]):
+					check = 1
+			if (check == 1):
+				if (isOffset(v[1]) == True):
+					VAct[key].append([epd,EPD(getOffset(v[1])),1<<(lsh*8),bitmask[lsh]])
 				else:
-					assert check_in_range(offset, shkey), f"Offset {offset} is out of range for {key}."
-
-				if shkey in Rewrite:
-					Rewrite[shkey][2] = 1
-				
-				try: # if value is a number...
-					if shkey == "256p":
-						D[shkey][epd] = toNum(val)
-					elif epd not in D[shkey]:
-						D[shkey][epd] = (toNum(val) << (lsh*8)) + ((0 if epd >= 6 and shkey == "wfp" else getRaw(shkey,epd)) & lshmask[lsh])
-						if recover_needed:
-							R[shkey][epd] = getRaw(shkey, epd)
-					elif not isinstance(D[shkey][epd], list):
-						D[shkey][epd] = (toNum(val) << (lsh*8)) + (D[shkey][epd] & lshmask[lsh])
-				except ValueError: # value is a variable name
-					# check if value is a valid variable name
-					assert re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]*", val), f"Invalid variable name: {val}"
-					if shkey == "scp":
-						D[key][epd] = [val, 1, 0x01000000, (getRaw(key,epd) & lshmask[lsh])]
-					else:
-						D[shkey][epd] = [val, 4]
-					if recover_needed:
-						R[shkey][epd] = getRaw(shkey, epd)
-
-		case "dragbox color filter" | "shadow color filter" | "screen color filter":
-			shkey = {
-				"dragbox color filter": "df", "shadow color filter": "sf", "screen color filter": "scf"
-			}[key]
-			recover_needed = key in Recover # will be true
+					EAct[key].append(SetDeathsX(epd,SetTo,toNum(v[1])<<(lsh*8),0,bitmask[lsh]))
+				EActused = 1
+	if K.lower() == 'selection circle color':
+		key = "scc"
+		t = parseOption(V)
+		for k, v in enumerate(t):
+			off = toNum(v[0])
+			ptr = Addr[key]+off
+			epd, lsh = EPD(ptr), (ptr)%4
+			check = 0
+			for loc in Size[key]:
+				if (loc[0] <= off and off < loc[1]):
+					check = 1
+			if (check == 1):
+				if (isOffset(v[1]) == True):
+					VAct[key].append([epd,EPD(getOffset(v[1])),1<<(lsh*8),bitmask[lsh]])
+				else:
+					EAct[key].append(SetDeathsX(epd,SetTo,toNum(v[1])<<(lsh*8),0,bitmask[lsh]))
+				EActused = 1
+	if K.lower() == "wireframe palette":
+		key = "wfp"
+		t = parseOption(V)
+		for k, v in enumerate(t):
+			off = toNum(v[0])
+			epd, lsh = off//4, off%4
+			check = 0
+			for loc in Size[key]:
+				if (loc[0] <= off and off < loc[1]):
+					check = 1
+			if (check == 1):
+				if (isOffset(v[1]) == True):
+					D[key][epd] = [v[1], 4]
+				else:
+					if (D[key].get(epd) == None):
+						D[key][epd] = (toNum(v[1]) << (lsh*8)) + ((getRaw(key,epd) if epd < 6 else 0) & lshmask[lsh])
+					elif (type(D[key][epd]) is not list):
+						D[key][epd] = (toNum(v[1]) << (lsh*8)) + (D[key][epd] & lshmask[lsh])
+	if K.lower() == "wireframe color":
+		key = "wfc"
+		t = parseOption(V)
+		for k, v in enumerate(t):
+			off = toNum(v[0])
+			epd, lsh = off//4, off%4
+			check = 0
+			for loc in Size[key]:
+				if (loc[0] <= off and off < loc[1]):
+					check = 1
+			if (check == 1):
+				if (isOffset(v[1]) == True):
+					D[key][epd] = [v[1], 4]
+					R[key][epd] = getRaw(key,epd)
+				else:
+					if (D[key].get(epd) == None):
+						D[key][epd] = (toNum(v[1]) << (lsh*8)) + (getRaw(key,epd) & lshmask[lsh])
+						R[key][epd] = getRaw(key,epd)
+					elif (type(D[key][epd]) is not list):
+						D[key][epd] = (toNum(v[1]) << (lsh*8)) + (D[key][epd] & lshmask[lsh])
+	if K.lower() == "selection circle palette":
+		key = "scp"
+		t = parseOption(V)
+		for k, v in enumerate(t):
+			off = toNum(v[0])
+			epd, lsh = (8*off)//4, 3
+			check = 0
+			for loc in Size[key]:
+				if (loc[0] <= off and off < loc[1]):
+					check = 1
+			if (check == 1):
+				if (isOffset(v[1]) == True):
+					D[key][epd] = [v[1], 1, 0x01000000, (getRaw(key,epd) & lshmask[lsh])]
+					R[key][epd] = getRaw(key,epd)
+				else:
+					if (D[key].get(epd) == None):
+						D[key][epd] = (toNum(v[1]) << (lsh*8)) + (getRaw(key,epd) & lshmask[lsh])
+						R[key][epd] = getRaw(key,epd)
+					elif (type(D[key][epd]) is not list):
+						D[key][epd] = (toNum(v[1]) << (lsh*8)) + (D[key][epd] & lshmask[lsh])
+	if K.lower() == "text palette":
+		colorcode = {0x02:0x01,0x03:0x09,0x04:0x11,0x05:0x19,0x06:0x21,0x07:0x29,0x08:0x41,0x0E:0x49,0x0F:0x51,0x10:0x59,0x11:0x61,0x15:0x69,0x16:0x71,0x17:0x79,0x18:0x81,0x19:0x89,0x1B:0x91,0x1C:0x99,0x1D:0xA1,0x1E:0xA9,0x1F:0xB9}
+		key = "tp"
+		t = parseOption(V)
+		for k, v in enumerate(t):
+			cc = toNum(v[0])
+			check = 0
+			if (colorcode.get(cc) != None):
+				check = 1
+			if (check == 1):
+				off = colorcode[cc]
+				epd, lsh = off//4, off%4
+				Rewrite[key][2] = 1
+				if (isOffset(v[1]) == True):
+					D[key][epd] = [v[1], 1, 0x0100, (getRaw(key,epd) & lshmask[lsh])]
+				else:
+					if (D[key].get(epd) == None):
+						D[key][epd] = (toNum(v[1]) << (lsh*8)) + (getRaw(key,epd) & lshmask[lsh])
+					elif (type(D[key][epd]) is not list):
+						D[key][epd] = (toNum(v[1]) << (lsh*8)) + (D[key][epd] & lshmask[lsh])
+	if K.lower() == "misc palette":
+		misccode = {"p0":0x0,"p1":0x1,"p2":0x2,"p3":0x3,"p4":0x4,"p5":0x5,"p6":0x6,"p7":0x7,"p8":0x8,"p9":0x9,"p10":0xA,"p11":0xB,"p12":0xC,"p13":0xD,"p14":0xE,"p15":0xF,"fill":0xF,"line":0x10,"self":0x12,"res":0x19}
+		key = "mp"
+		t = parseOption(V)
+		for k, v in enumerate(t):
+			mc = v[0].lower()
+			check = 0
+			if (misccode.get(mc) != None):
+				check = 1
+			if (check == 1):
+				off = misccode[mc]
+				epd, lsh = off//4, off%4
+				Rewrite[key][2] = 1
+				if (isOffset(v[1]) == True):
+					D[key][epd] = [v[1], 4]
+				else:
+					if (D[key].get(epd) == None):
+						D[key][epd] = (toNum(v[1]) << (lsh*8)) + (getRaw(key,epd) & lshmask[lsh])
+					elif (type(D[key][epd]) is not list):
+						D[key][epd] = (toNum(v[1]) << (lsh*8)) + (D[key][epd] & lshmask[lsh])
+	if K.lower() == "256 color palette":
+		key = "256p"
+		t = parseOption(V)
+		for k, v in enumerate(t):	
+			off = toNum(v[0])
+			epd = off
+			check = 0
+			for loc in Size[key]:
+				if (loc[0] <= off and off < loc[1]):
+					check = 1
+			if (check == 1):
+				if (isOffset(v[1]) == True):
+					D[key][epd] = [v[1], 4]
+				else:
+					D[key][epd] = toNum(v[1])
+	if K.lower() == "dragbox color filter":
+		key = "df"
+		t = parseOption(V)
+		for k, v in enumerate(t):
+			fc = v[0].lower()
 			filtercode = {"r":0x0,"g":0x4,"b":0x8,"a":0xC}
-
-			ovs = value.split(";")
-			for ov in ovs:
-				offset, value in ovs.split(",")
-				assert offset in filtercode, f"Invalid filter code {offset} for {key}."
-				epd = filtercode[offset] // 4
+			check = 0
+			if (filtercode.get(fc) != None):
+				check = 1
+			if (check == 1):
+				epd = filtercode[fc]//4
 				R[key][epd] = Raw[key][epd]
-				try: # if value is a number...
-					D[key][epd] = int(toFloat(val), 16)
-				except ValueError: 
-					D[key][epd] = [val, 4]
-				
-
-		case _: # condition to label correspondence
-			conds = [c.strip() for c in key.split(";")]
-			for cond in conds:
-				if cond.lower() == 'always':
-					pass
+				if (isOffset(v[1]) == True):
+					D[key][epd] = [v[1], 4]
 				else:
-					c = [con.strip() for con in cond.split(",")]
-					if re.fullmatch(r"0[xX][0-9a-fA-F]+", c[0]): # address of 0x##### form
-						try:
-							ptr, mod, val = int(c[0], 0), eval(c[1]), int(c[2], 0)
-						except (IndexError, SyntaxError):
-							ptr, val = int(c[0], 0), int(c[1], 0)
-							con_final.append(MemoryX(ptr, Exactly, val, val))
-						else:
-							con_final.append(Memory(ptr, mod, val))
-					else:
-						con_final.append(cond)
-				
-				# parse labels
-				for v in value.split(","):
-					v = v.strip().lower()
-					if v == "recover":
-						Address_RECOVER, Address_VALUE = toNum(t[0]), toNum(t[1])
-						act_final.append('recover')
-					elif v in sectors:
-						act_final.append(v)
-					else:
-						raise ValueError(f"Invalid label {v} in {key}.")
-					if 'recover' in act_final:
-						assert len(act_final) == 1, "Recover can't go together with another label."
-			
-			cond_act_pairs.append((con_final, act_final))
-
+					D[key][epd] = int(toFloat(v[1]),16)
+	if K.lower() == "shadow color filter":
+		key = "sf"
+		t = parseOption(V)
+		for k, v in enumerate(t):
+			fc = v[0].lower()
+			filtercode = {"r":0x0,"g":0x4,"b":0x8,"a":0xC}
+			check = 0
+			if (filtercode.get(fc) != None):
+				check = 1
+			if (check == 1):
+				epd = filtercode[fc]//4
+				R[key][epd] = Raw[key][epd]
+				if (isOffset(v[1]) == True):
+					D[key][epd] = [v[1], 4]
+				else:
+					D[key][epd] = int(toFloat(v[1]),16)
+	if K.lower() == "screen color filter":
+		key = "scf"
+		t = parseOption(V)
+		for k, v in enumerate(t):
+			fc = v[0].lower()
+			filtercode = {"r":0x0,"g":0x4,"b":0x8,"a":0xC}
+			check = 0
+			if (filtercode.get(fc) != None):
+				check = 1
+			if (check == 1):
+				epd = filtercode[fc]//4
+				R[key][epd] = Raw[key][epd]
+				if (isOffset(v[1]) == True):
+					D[key][epd] = [v[1], 4]
+				else:
+					D[key][epd] = int(toFloat(v[1]),16)
+	'''
+	if K.lower() == 'path':
+		txtfile = open(V, 'rb')
+		# txtfile -> settings 설정
+		txtfile.close()
+	'''
 
 @EUDFunc
 def SetEWait(src, val):
 	ftrg = Forward()
 	VProc(
-		v=[src, val],
+		v=[src,val],
 		actions=[
 			SetMemory(ftrg+0x164+0x20, SetTo, 4),
 			SetMemory(ftrg+0x948, SetTo, 4), # internal flag
@@ -308,7 +405,7 @@ def SetEWait(src, val):
 	)
 	ftrg << RawTrigger(
 		actions=[
-			SetMemory(0x6509B0, SetTo, 0), # Set CP
+			SetMemory(0x6509B0, SetTo, 0),
 			Action(0, 0, 0, 0, 0, 0, 0, 4, 0, 4),
 		]
 	)
@@ -343,7 +440,7 @@ def onPluginStart():
 				print(epd, val)
 				Cp = (Addr[key]-Address_WAIT)//4+epd
 				PAct.append(SetDeaths(CEPD+i+MEMEPD*k,SetTo,Cp,0))
-				if isinstance(val, list):
+				if (type(val) is list):
 					if (len(val) == 4):
 						PAct.append(SetDeaths(VEPD+i+MEMEPD*k,SetTo,EPD(getOffset(val[0])),0)) # epd
 						PAct.append(SetDeaths(MEPD+i+MEMEPD*k,SetTo,val[1],0)) # mask
