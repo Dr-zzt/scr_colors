@@ -111,7 +111,7 @@ def check_in_range(off, key):
 def float_to_hex(f):
 	return hex(struct.unpack('<I', struct.pack('<f', f))[0])
 
-def to_num(s):
+def dec_or_hex_to_int(s):
 	try:
 		return int(s)
 	except ValueError:
@@ -119,7 +119,7 @@ def to_num(s):
 
 def to_float(s):
 	try:
-		return float_to_hex(to_num(s) / 255)
+		return float_to_hex(dec_or_hex_to_int(s) / 255)
 	except ValueError:
 		return float_to_hex(float(s))
 
@@ -171,7 +171,7 @@ bitmask = [0x000000FF,0x0000FF00,0x00FF0000,0xFF000000]
 # (4) involves variables. e.g. varname.AtLeast(1)
 
 sectors = {"unit color":"uc","minimap color":"mc","selection circle color":"scc","wireframe palette":"wfp","wireframe color":"wfc","selection circle palette":"scp","text palette":"tp","misc palette":"mp","256 color palette":"256p","dragbox color filter":"df","shadow color filter":"sf","screen color filter":"scf"}
-unmatched_sectors = set(sectors.keys())
+unmatched_sectors = set(sectors.keys()).difference({"unit color", "minimap color", "selection circle color"})
 for key, value in settings.items():
 	original_key = key
 	key = key.lower().strip()	
@@ -193,7 +193,7 @@ for key, value in settings.items():
 				offset, val = ov.split(",")					
 
 				if shkey == "tp":
-					offset = to_num(offset)
+					offset = dec_or_hex_to_int(offset)
 					colorcode = {0x02:0x01,0x03:0x09,0x04:0x11,0x05:0x19,0x06:0x21,0x07:0x29,0x08:0x41,0x0E:0x49,0x0F:0x51,0x10:0x59,0x11:0x61,0x15:0x69,0x16:0x71,0x17:0x79,0x18:0x81,0x19:0x89,0x1B:0x91,0x1C:0x99,0x1D:0xA1,0x1E:0xA9,0x1F:0xB9}
 					assert offset in colorcode, f"Invalid color code {offset} for {key}."
 					offset = colorcode[offset]
@@ -203,7 +203,7 @@ for key, value in settings.items():
 					assert offset in misccode, f"Invalid misc code {offset} for {key}."
 					offset = misccode[offset]
 				else:
-					offset = to_num(offset)
+					offset = dec_or_hex_to_int(offset)
 					assert check_in_range(offset, shkey), f"Offset {offset} is out of range for {key}."
 
 				if key == "selection circle palette":
@@ -216,13 +216,13 @@ for key, value in settings.items():
 				
 				try: # if value is a number...
 					if shkey == "256p":
-						D[shkey][epd] = to_num(val)
+						D[shkey][epd] = dec_or_hex_to_int(val)
 					elif epd not in D[shkey]:
-						D[shkey][epd] = (to_num(val) << (lsh*8)) + ((0 if epd >= 6 and shkey == "wfp" else getRaw(shkey,epd)) & lshmask[lsh])
+						D[shkey][epd] = (dec_or_hex_to_int(val) << (lsh*8)) + ((0 if epd >= 6 and shkey == "wfp" else getRaw(shkey,epd)) & lshmask[lsh])
 						if recover_needed:
 							R[shkey][epd] = getRaw(shkey, epd)
 					elif not isinstance(D[shkey][epd], tuple):
-						D[shkey][epd] = (to_num(val) << (lsh*8)) + (D[shkey][epd] & lshmask[lsh])
+						D[shkey][epd] = (dec_or_hex_to_int(val) << (lsh*8)) + (D[shkey][epd] & lshmask[lsh])
 					else:
 						raise ValueError(f"Constant value offset {offset}, {key} collides with variable value.")
 				except ValueError: # value is a variable name
@@ -249,9 +249,9 @@ for key, value in settings.items():
 				epd = filtercode[offset] // 4
 				R[shkey][epd] = Raw[shkey][epd]
 				try: # if value is a number...
-					D[shkey][epd] = int(to_float(val), 16)
+					D[shkey][epd] = int(to_float(value), 16)
 				except ValueError: 
-					D[shkey][epd] = [val, 4]
+					D[shkey][epd] = [value, 4]
 				
 
 		case _: # condition to label correspondence
@@ -288,7 +288,7 @@ for key, value in settings.items():
 			cond_label_pairs.append((con_final, act_final))
 
 # put unmatched sectors into cond_act_pairs with empty conditions
-cond_label_pairs.append(([], [v for v in unmatched_sectors if sectors[v] in D]))
+cond_label_pairs.append(([], [v for v in unmatched_sectors if D[sectors[v]]]))
 
 
 @EUDFunc
@@ -329,7 +329,7 @@ def beforeTriggerExec():
 		assert False, "EUD Actions are not supported in this version of SCR Colors."
 
 	for conds, labels in cond_label_pairs:
-		if EUDExecuteOnce()([interpret_condition(cond) for cond in conds] + [Is64BitWireframe()]):
+		if EUDExecuteOnce()([interpret_condition(cond) for cond in conds] + [EUDNot(Is64BitWireframe())]):
 			for label in labels:
 				if label == 'recover':
 					# Perform recovery actions
