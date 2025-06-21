@@ -40,7 +40,7 @@ Addr = {
 	"sf" : 0xB3CA68, # Shadow Color Filter
 	"scf" : 0xB3CA88 # Screen Color Filter
 }
-D = { # SetEWait Act for Write Values
+D: dict[str, dict[int, int|tuple[str, int]|tuple[str, int, int, int]]] = { # SetEWait Act for Write Values
 	"wfp" : {}, 
 	"wfc" : {},
 	"scp" : {},
@@ -65,8 +65,8 @@ Raw = { # Original Data
 }
 # 2nd = ((1st - Address_WAIT)//4 + Address_WAIT_FLAG)
 Rewrite = { # Reset Wait flags before SetEWait (Left→Right Order Exec)
-	"tp" : [[0xDB8754,0xDB8838,0xDB8BC4,0xDB99F8,0xDBD2C8],[1,1,2,4,13],0],
-	"mp" : [[0xDB8754,0xDB8838,0xDB8BC8,0xDB9A08,0xDBD310],[1,1,1,2,3],0]
+	"tp" : [[0xDB8754,0xDB8838,0xDB8BC4,0xDB99F8,0xDBD2C8],[1,1,2,4,13],False],
+	"mp" : [[0xDB8754,0xDB8838,0xDB8BC8,0xDB9A08,0xDBD310],[1,1,1,2,3],False]
 }
 Recover = { # Reset Wait flags after SetEWait (Left→Right Order Exec)
 	"wfc" : [[0xD8FF20,0xD16770],[10,35]],
@@ -75,7 +75,7 @@ Recover = { # Reset Wait flags after SetEWait (Left→Right Order Exec)
 	"sf" : [[0xD90B3C,0xD197E0],[2,2]],
 	"scf" : [[0xD90B40,0xD197E8],[1,2]]
 }
-R = { # SetEWait Act for Recover Values
+R: dict[str, dict[int, int]] = { # SetEWait Act for Recover Values
 	"wfc" : {},
 	"scp" : {},
 	"df" : {},
@@ -97,9 +97,10 @@ Cond = { # Patch Condition
 	"scf" : [0,0]
 }
 
-cond_act_pairs = []
+cond_label_pairs: list[tuple[list, list[str]]] = []
+recover_condition = None
 
-print("[SC:R Colors v3.0.x] Current Version : v1.23.10.13515 (Modified from v. 25/06/07)")
+print("[SC:R Colors v4.0.0] (Modified from v3.0, 25/06/07)")
 
 def check_in_range(off, key):
 	for loc in Size[key]:
@@ -110,54 +111,38 @@ def check_in_range(off, key):
 def float_to_hex(f):
 	return hex(struct.unpack('<I', struct.pack('<f', f))[0])
 
-def toNum(s):
+def to_num(s):
 	try:
 		return int(s)
 	except ValueError:
 		return int(s, 16)
 
-def toFloat(s):
+def to_float(s):
 	try:
-		return float_to_hex(toNum(s) / 255)
+		return float_to_hex(to_num(s) / 255)
 	except ValueError:
 		return float_to_hex(float(s))
 
-def isOffset(s):
-	if (s.find('_') == -1):
-		return False
-	else:
-		return True
+def get_variable_value(var_name: str):
+	ns = GetEUDNamespace()
+	assert var_name in ns, f"Variable '{var_name}' not found in the current namespace."
+	return ns[var_name]
 
-def getOffset(s):
-	return int(s[1:],16)
-
-def getRaw(key,epd):
+def getRaw(key: str, epd: int) -> int:
 	return (Raw[key][epd*4+3]<<24)+(Raw[key][epd*4+2]<<16)+(Raw[key][epd*4+1]<<8)+Raw[key][epd*4]
 
-def parse_options(t):
-	ret = []
-	fpos, rpos = 0, 0
-	for i, c in enumerate(t):
-		if (c == '('):
-			fpos = i+1
-		elif (c == ')'):
-			rpos = i-1
-			spos = t.find(',',fpos,rpos)
-			ret.append([t[fpos:spos],t[spos+1:rpos+1]])
-	return ret
+def interpret_condition(cond):
+	if isinstance(cond, Condition):
+		return cond
+	# involves variables
+	cond: str
+	_ns = GetEUDNamespace()
+	for k, v in _ns.items():
+		if k in cond:
+			cond = re.sub(r"\b{}\b".format(k), r"_ns['\g<0>']", cond)
+			# replace variable_name with _ns[variable_name]
+	return eval(cond)
 
-def parseCond(t):
-	ret = []
-	fpos, rpos = 0, 0
-	for i, c in enumerate(t):
-		if (c == '('):
-			fpos = i+1
-		elif (c == ')'):
-			rpos = i-1
-			spos1 = t.find(',',fpos,rpos)
-			spos2 = t.rfind(',',fpos,rpos)
-			ret.append([t[fpos:spos1].strip().lower(),t[spos1+1:spos2],t[spos2+1:rpos+1]])
-	return ret
 
 mode = 1
 EAct = {
@@ -179,10 +164,17 @@ bitmask = [0x000000FF,0x0000FF00,0x00FF0000,0xFF000000]
 # (1) condition1; condition2; ... : label1, label2, 
 # (2) label: offset, value; offset, value; ...
 
+# condition format:
+# (1) always
+# (2) offset, modifier, value
+# (3) offset, value - same as (2) with modifier = Exactly
+# (4) involves variables. e.g. varname.AtLeast(1)
 
+sectors = {"unit color":"uc","minimap color":"mc","selection circle color":"scc","wireframe palette":"wfp","wireframe color":"wfc","selection circle palette":"scp","text palette":"tp","misc palette":"mp","256 color palette":"256p","dragbox color filter":"df","shadow color filter":"sf","screen color filter":"scf"}
+unmatched_sectors = set(sectors.keys())
 for key, value in settings.items():
-	key = key.lower().strip()
-	sectors = {"unit color":"uc","minimap color":"mc","selection circle color":"scc","wireframe palette":"wfp","wireframe color":"wfc","selection circle palette":"scp","text palette":"tp","misc palette":"mp","256 color palette":"256p","dragbox color filter":"df","shadow color filter":"sf","screen color filter":"scf"}
+	original_key = key
+	key = key.lower().strip()	
 	con_final, act_final = [], []
 	match key:
 		case 'mode':
@@ -193,74 +185,77 @@ for key, value in settings.items():
 			# Editable with classic EUDs. Todo later.
 			raise NotImplementedError("Unit color, minimap color, and selection circle color are not implemented yet.")
 		
-		case "wireframe palette" | "wireframe color" | "selection circle palette" | "text palette" | "256 color palette":
-			shkey = {
-				"wireframe palette": "wfp", "wireframe color": "wfc", "selection circle palette": "scp", "text palette": "tp", "256 color palette": "256p"
-			}[key]
+		case "wireframe palette" | "wireframe color" | "selection circle palette" | "text palette" | "256 color palette" | "misc palette":
+			shkey = sectors[key]
 			recover_needed = shkey in Recover
 			ovs = value.split(";")
 			for ov in ovs:
-				offset, val = ov.split(",")
-				offset = toNum(offset)
-				if key == "selection circle palette":
-					epd, lsh = 8 * offset // 4, 3
-				else:
-					epd, lsh = divmod(offset, 4)
+				offset, val = ov.split(",")					
 
 				if shkey == "tp":
+					offset = to_num(offset)
 					colorcode = {0x02:0x01,0x03:0x09,0x04:0x11,0x05:0x19,0x06:0x21,0x07:0x29,0x08:0x41,0x0E:0x49,0x0F:0x51,0x10:0x59,0x11:0x61,0x15:0x69,0x16:0x71,0x17:0x79,0x18:0x81,0x19:0x89,0x1B:0x91,0x1C:0x99,0x1D:0xA1,0x1E:0xA9,0x1F:0xB9}
 					assert offset in colorcode, f"Invalid color code {offset} for {key}."
 					offset = colorcode[offset]
 				elif shkey == "mp":
 					misccode = {"p0":0x0,"p1":0x1,"p2":0x2,"p3":0x3,"p4":0x4,"p5":0x5,"p6":0x6,"p7":0x7,"p8":0x8,"p9":0x9,"p10":0xA,"p11":0xB,"p12":0xC,"p13":0xD,"p14":0xE,"p15":0xF,"fill":0xF,"line":0x10,"self":0x12,"res":0x19}
+					offset = offset.lower().strip()
 					assert offset in misccode, f"Invalid misc code {offset} for {key}."
 					offset = misccode[offset]
 				else:
+					offset = to_num(offset)
 					assert check_in_range(offset, shkey), f"Offset {offset} is out of range for {key}."
 
+				if key == "selection circle palette":
+					epd, lsh = 8 * offset // 4, 3
+				else:
+					epd, lsh = divmod(offset, 4)
+
 				if shkey in Rewrite:
-					Rewrite[shkey][2] = 1
+					Rewrite[shkey][2] = True
 				
 				try: # if value is a number...
 					if shkey == "256p":
-						D[shkey][epd] = toNum(val)
+						D[shkey][epd] = to_num(val)
 					elif epd not in D[shkey]:
-						D[shkey][epd] = (toNum(val) << (lsh*8)) + ((0 if epd >= 6 and shkey == "wfp" else getRaw(shkey,epd)) & lshmask[lsh])
+						D[shkey][epd] = (to_num(val) << (lsh*8)) + ((0 if epd >= 6 and shkey == "wfp" else getRaw(shkey,epd)) & lshmask[lsh])
 						if recover_needed:
 							R[shkey][epd] = getRaw(shkey, epd)
-					elif not isinstance(D[shkey][epd], list):
-						D[shkey][epd] = (toNum(val) << (lsh*8)) + (D[shkey][epd] & lshmask[lsh])
+					elif not isinstance(D[shkey][epd], tuple):
+						D[shkey][epd] = (to_num(val) << (lsh*8)) + (D[shkey][epd] & lshmask[lsh])
+					else:
+						raise ValueError(f"Constant value offset {offset}, {key} collides with variable value.")
 				except ValueError: # value is a variable name
 					# check if value is a valid variable name
 					assert re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]*", val), f"Invalid variable name: {val}"
+					assert epd not in D[shkey], f"Offset {offset} already exists in {key} for variable value."
 					if shkey == "scp":
-						D[key][epd] = [val, 1, 0x01000000, (getRaw(key,epd) & lshmask[lsh])]
+						D[shkey][epd] = (val, 1, 0x01000000, (getRaw(key,epd) & lshmask[lsh]))
 					else:
-						D[shkey][epd] = [val, 4]
+						D[shkey][epd] = (val, 4)
 					if recover_needed:
 						R[shkey][epd] = getRaw(shkey, epd)
 
 		case "dragbox color filter" | "shadow color filter" | "screen color filter":
-			shkey = {
-				"dragbox color filter": "df", "shadow color filter": "sf", "screen color filter": "scf"
-			}[key]
+			shkey = sectors[key]
 			recover_needed = key in Recover # will be true
 			filtercode = {"r":0x0,"g":0x4,"b":0x8,"a":0xC}
 
 			ovs = value.split(";")
 			for ov in ovs:
-				offset, value in ovs.split(",")
+				offset, value = ov.split(",")
+				offset = offset.lower().strip()
 				assert offset in filtercode, f"Invalid filter code {offset} for {key}."
 				epd = filtercode[offset] // 4
-				R[key][epd] = Raw[key][epd]
+				R[shkey][epd] = Raw[shkey][epd]
 				try: # if value is a number...
-					D[key][epd] = int(toFloat(val), 16)
+					D[shkey][epd] = int(to_float(val), 16)
 				except ValueError: 
-					D[key][epd] = [val, 4]
+					D[shkey][epd] = [val, 4]
 				
 
 		case _: # condition to label correspondence
-			conds = [c.strip() for c in key.split(";")]
+			conds = [c.strip() for c in original_key.split(";")]
 			for cond in conds:
 				if cond.lower() == 'always':
 					pass
@@ -277,20 +272,23 @@ for key, value in settings.items():
 					else:
 						con_final.append(cond)
 				
-				# parse labels
-				for v in value.split(","):
-					v = v.strip().lower()
-					if v == "recover":
-						Address_RECOVER, Address_VALUE = toNum(t[0]), toNum(t[1])
-						act_final.append('recover')
-					elif v in sectors:
-						act_final.append(v)
-					else:
-						raise ValueError(f"Invalid label {v} in {key}.")
-					if 'recover' in act_final:
-						assert len(act_final) == 1, "Recover can't go together with another label."
-			
-			cond_act_pairs.append((con_final, act_final))
+			# parse labels
+			for v in value.split(","):
+				v = v.strip().lower()
+				if v == "recover":
+					act_final.append('recover')
+				elif v in sectors:
+					act_final.append(v)
+					unmatched_sectors.remove(v)
+				else:
+					raise ValueError(f"Invalid label {v} in {key}.")
+				
+			if 'recover' in act_final:
+				assert len(act_final) == 1, "Recover can't go together with another label."
+			cond_label_pairs.append((con_final, act_final))
+
+# put unmatched sectors into cond_act_pairs with empty conditions
+cond_label_pairs.append(([], [v for v in unmatched_sectors if sectors[v] in D]))
 
 
 @EUDFunc
@@ -314,171 +312,47 @@ def SetEWait(src, val):
 	)
 	f_setcurpl2cpcache()
 
-MEMSIZE, MEMEPD, Rtotal = 0x600, 0x600//4, 0
-total, pcheck = EUDVArray(N)(), EUDVArray(N)()
-RCEPD, RWEPD, Rtotal, Qtotal, QCP, QSize, Ridx, Rsize, RCP, RZero, CEPD, WEPD, idx, WCP, WSize, Wtotal, Widx, Nidx, VEPD, WVal, MEPD, SEPD = EUDCreateVariables(22)
-Recover_CP, Recover_Wait = Db(MEMSIZE*N), Db(MEMSIZE*N)
-Queue_CP, Queue_Size = Db(MEMSIZE), Db(MEMSIZE)
-
 def onPluginStart(): 
-	Patch_CP, Patch_Wait, Patch_Variable, Patch_Mask, Patch_Shift = Db(MEMSIZE*N), Db(MEMSIZE*N), Db(MEMSIZE*N), Db(MEMSIZE*N), Db(MEMSIZE*N)
-	Rewrite_CP, Rewrite_Size = Db(MEMSIZE), Db(MEMSIZE)
-	CEPD << EPD(Patch_CP)
-	WEPD << EPD(Patch_Wait)
-	VEPD << EPD(Patch_Variable)
-	MEPD << EPD(Patch_Mask)
-	SEPD << EPD(Patch_Shift)
-	RCEPD << EPD(Recover_CP)
-	RWEPD << EPD(Recover_Wait)
-	QCP << EPD(Queue_CP)
-	QSize << EPD(Queue_Size)
-	WCP << EPD(Rewrite_CP)
-	WSize << EPD(Rewrite_Size)
-
 	if EUDIfNot()((Is64BitWireframe())):
-		PAct, i, j, k = [], 0, 0, 0
-		for key, v in D.items():
-			i = 0
-			for epd, val in v.items():
-				Cp = (Addr[key]-Address_WAIT)//4+epd
-				PAct.append(SetDeaths(CEPD+i+MEMEPD*k,SetTo,Cp,0))
-				if isinstance(val, list):
-					if (len(val) == 4):
-						PAct.append(SetDeaths(VEPD+i+MEMEPD*k,SetTo,EPD(getOffset(val[0])),0)) # epd
-						PAct.append(SetDeaths(MEPD+i+MEMEPD*k,SetTo,val[1],0)) # mask
-						PAct.append(SetDeaths(SEPD+i+MEMEPD*k,SetTo,val[2],0)) # shift
-						PAct.append(SetDeaths(WEPD+i+MEMEPD*k,SetTo,val[3],0)) # Base Value
-					else:
-						PAct.append(SetDeaths(VEPD+i+MEMEPD*k,SetTo,EPD(getOffset(val[0])),0)) # epd
-						PAct.append(SetDeaths(MEPD+i+MEMEPD*k,SetTo,val[1],0)) # mask
-				else:
-					PAct.append(SetDeaths(WEPD+i+MEMEPD*k,SetTo,val,0))
-				i += 1
-			total[k] = i
-			k += 1
-		for key, v in Rewrite.items():
-			if (v[2] == 1):
-				for p, u in enumerate(Rewrite[key][1]):
-					Cp = (Rewrite[key][0][p]-Address_WAIT)//4
-					PAct.append(SetDeaths(WCP+j,SetTo,Cp,0))
-					PAct.append(SetDeaths(WSize+j,SetTo,u,0))
-					j += 1
-		Wtotal << j
-		i, j = 0, 0
-		for key, v in R.items():
-			if (len(v) > 0):
-				for p, u in enumerate(Recover[key][1]):
-					Cp = (Recover[key][0][p]-Address_WAIT)//4
-					PAct.append(SetDeaths(QCP+j,SetTo,Cp,0))
-					PAct.append(SetDeaths(QSize+j,SetTo,u,0))
-					j += 1
-			for epd, val in v.items():
-				Cp = (Addr[key]-Address_WAIT)//4+epd
-				PAct.append(SetDeaths(RCEPD+i,SetTo,Cp,0))
-				PAct.append(SetDeaths(RWEPD+i,SetTo,val,0))
-				i += 1
-		Rtotal << i
-		Qtotal << j
-		DoActions(PAct)
-	EUDEndIf()
-
-	if EUDIf()((Wtotal.AtLeast(1))):
-		if EUDWhile()((Widx < Wtotal)): 
-			idx << 0
-			RCP << f_maskread_epd(WCP+Widx,0xFFFFFFFF)
-			Rsize << f_maskread_epd(WSize+Widx,0xFFFFFFFF)
-			if EUDWhile()((idx < Rsize)): 
-				SetEWait(RCP+idx,RZero)
-				DoActions([idx.AddNumber(1)])
-			EUDEndWhile()
-			DoActions([Widx.AddNumber(1)])
-		EUDEndWhile()
+		# initialize EWait offsets first
+		for key, value in Rewrite.items():
+			if not value[-1]: # if rewrite before color setting is needed
+				continue
+			for addr, size in zip(value[0], value[1]):
+				cp = (addr - Address_WAIT) // 4
+				for i in range(size):
+					SetEWait(cp + i, 0)
 	EUDEndIf()
 
 def beforeTriggerExec():
 	if EActused > 0: # EUD Actions are used. Currently EUD actions are not supported so this part will be ignored.
 		assert False, "EUD Actions are not supported in this version of SCR Colors."
-		if mode > 0:
-			for key, v in EAct.items():
-				if Cond[key][0] == 0:
-					if EUDExecuteOnce()():
-						for p, u in enumerate(VAct[key]):
-							v.append(SetDeathsX(u[0],SetTo,f_maskread_epd(u[1],0xFF)*u[2],0,u[3]))
-						DoActions(v)
-					EUDEndExecuteOnce()
-				else:
-					if EUDExecuteOnce()((Memory(Cond[key][0],Exactly,Cond[key][1]))):
-						for p, u in enumerate(VAct[key]):
-							v.append(SetDeathsX(u[0],SetTo,f_maskread_epd(u[1],0xFF)*u[2],0,u[3]))
-						DoActions(v)
-					EUDEndExecuteOnce()
-		else:
-			for key, v in EAct.items():
-				if Cond[key][0] == 0:
-					if EUDExecuteOnce()((EUDNot(Is64BitWireframe()))):
-						for p, u in enumerate(VAct[key]):
-							v.append(SetDeathsX(u[0],SetTo,f_maskread_epd(u[1],0xFF)*u[2],0,u[3]))
-						DoActions(v)
-					EUDEndExecuteOnce()
-				else:
-					if EUDExecuteOnce()((Memory(Cond[key][0],Exactly,Cond[key][1]),EUDNot(Is64BitWireframe()))):
-						for p, u in enumerate(VAct[key]):
-							v.append(SetDeathsX(u[0],SetTo,f_maskread_epd(u[1],0xFF)*u[2],0,u[3]))
-						DoActions(v)
-					EUDEndExecuteOnce()
-	Temp = EUDVariable()
-	Pass = Forward()
-	Nidx << 0
-	if EUDWhile()((Nidx < N)):
-		k = 0
-		for key, v in D.items():
-			if (Cond[key][0] != 0 and len(v) > 0):
-				EUDJumpIf([Nidx.Exactly(k),EUDNot(Memory(Cond[key][0],Exactly,Cond[key][1]))],Pass)
-			k += 1
-		if EUDIf()((pcheck[Nidx].Exactly(0),total[Nidx].AtLeast(1))):
-			idx << 0
-			Temp << Nidx*MEMEPD
-			if EUDWhile()((idx < total[Nidx])):
-				if EUDIf()((Deaths(MEPD+idx+Temp,AtLeast,1,0))):
-					if EUDIf()((Deaths(MEPD+idx+Temp,Exactly,1,0))):
-						WVal << f_maskread_epd(f_maskread_epd(VEPD+idx+Temp,0xFFFFFFFF),0xFF)*f_maskread_epd(SEPD+idx+Temp,0xFFFFFFFF)+f_maskread_epd(WEPD+idx+Temp,0xFFFFFFFF)
-					if EUDElse()():
-						WVal << f_maskread_epd(f_maskread_epd(VEPD+idx+Temp,0xFFFFFFFF),0xFFFFFFFF)
-					EUDEndIf()
-				if EUDElse()():
-					WVal << f_maskread_epd(WEPD+idx+Temp,0xFFFFFFFF)
-				EUDEndIf()
-				SetEWait(f_maskread_epd(CEPD+idx+Temp,0xFFFFFFFF),WVal)
-				DoActions([idx.AddNumber(1)])
-			EUDEndWhile()
-			pcheck[Nidx] = 1
-		EUDEndIf()
-		Pass << NextTrigger()
-		DoActions([Nidx.AddNumber(1)])
-	EUDEndWhile()
 
-def afterTriggerExec():
-	Check = EUDCreateVariables(1)
-	if EUDIf()((Rtotal.AtLeast(1))):
-		if EUDIf()((Check.Exactly(0),Memory(Address_RECOVER,Exactly,Address_VALUE))): 
-			if EUDIf()((Qtotal.AtLeast(1))):
-				if EUDWhile()((Ridx < Qtotal)): 
-					idx << 0
-					RCP << f_maskread_epd(QCP+Ridx,0xFFFFFFFF)
-					Rsize << f_maskread_epd(QSize+Ridx,0xFFFFFFFF)
-					if EUDWhile()((idx < Rsize)): 
-						SetEWait(RCP+idx,RZero)
-						DoActions([idx.AddNumber(1)])
-					EUDEndWhile()
-					DoActions([Ridx.AddNumber(1)])
-				EUDEndWhile()
-			EUDEndIf()
+	for conds, labels in cond_label_pairs:
+		if EUDExecuteOnce()([interpret_condition(cond) for cond in conds] or None):
+			for label in labels:
+				if label == 'recover':
+					# Perform recovery actions
+					for shkey, val in R.items():
+						for addr, size in zip(Recover[shkey][0], Recover[shkey][1]):
+							cp = (addr - Address_WAIT) // 4
+							for i in range(size):
+								SetEWait(cp + i, 0)
+							
+						for epd, v in val.items():
+							cp = (Addr[shkey] - Address_WAIT) // 4 + epd
+							SetEWait(cp, v)
+				else:
+					assert label in sectors, f"Invalid label {label}."
+					shkey = sectors[label]
+					for epd, val in D[shkey].items():
+						cp = (Addr[shkey] - Address_WAIT) // 4 + epd
+						if isinstance(val, int):
+							SetEWait(cp, val)
+						elif len(val) == 2:
+							SetEWait(cp, get_variable_value(val[0]))
+						else:
+							SetEWait(cp, get_variable_value(val[0]) * val[1] + val[2])
+		EUDEndExecuteOnce()
 
-			idx << 0
-			if EUDWhile()((idx < Rtotal)): 
-				SetEWait(f_maskread_epd(RCEPD+idx,0xFFFFFFFF),f_maskread_epd(RWEPD+idx,0xFFFFFFFF))
-				DoActions([idx.AddNumber(1)])
-			EUDEndWhile()
-			Check << 1
-		EUDEndIf()
-	EUDEndIf()
+	return 

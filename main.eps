@@ -3,3 +3,10 @@ function onPluginStart() {
 	CreateUnit(1, "Terran Marine", "Location 1", P1);
 	TrgUnit("Terran Marine").nameString = "\x03이상한회색 \x1b1B색 \x1616색 \x0404색";
 }
+
+var P1_marine_deaths;
+EUDRegisterObjectToNamespace("P1_marine_deaths", P1_marine_deaths);
+
+function beforeTriggerExec() {
+	P1_marine_deaths = dwread(0x58A364);
+}
