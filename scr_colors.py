@@ -1,4 +1,4 @@
-# scr_colors v3.0.x 
+# scr_colors v4.0.0 
 # Made by Ninfia, modified by Defender
 # Some code is from Armoha's MSQC
 import re
@@ -329,7 +329,7 @@ def beforeTriggerExec():
 		assert False, "EUD Actions are not supported in this version of SCR Colors."
 
 	for conds, labels in cond_label_pairs:
-		if EUDExecuteOnce()([interpret_condition(cond) for cond in conds] or None):
+		if EUDExecuteOnce()([interpret_condition(cond) for cond in conds] + [Is64BitWireframe()]):
 			for label in labels:
 				if label == 'recover':
 					# Perform recovery actions
