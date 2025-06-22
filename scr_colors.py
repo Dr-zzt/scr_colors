@@ -267,6 +267,10 @@ for key, value in settings.items():
 							con_final.append(Memory(ptr, mod, val))
 					else:
 						try:
+							c[0] = int(c[0], 0)
+						except ValueError:
+							pass
+						try:
 							unitID = EncodeUnit(c[0])
 						except EPError:
 							con_final.append(cond)
@@ -285,6 +289,7 @@ for key, value in settings.items():
 					act_final.append('recover')
 				elif v in sectors:
 					act_final.append(v)
+					assert v in unmatched_sectors, f"Label '{v}' is used twice."
 					unmatched_sectors.remove(v)
 				else:
 					raise ValueError(f"Invalid label {v} in {key}.")
