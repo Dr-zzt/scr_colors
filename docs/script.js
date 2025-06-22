@@ -1056,6 +1056,9 @@ document.addEventListener('DOMContentLoaded', function () {
         // 각 UI 갱신
         render256PaletteEditTargets();
         renderAllPaletteUIsAndPluginInput();
+
+        // 입력 필드 초기화
+        document.getElementById('plugin-load-input').value = ''; // 로드 입력 필드 초기화
     });
 
     document.getElementById('prompt-input').addEventListener('input', function() {
