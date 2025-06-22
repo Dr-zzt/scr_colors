@@ -815,7 +815,7 @@ document.addEventListener('DOMContentLoaded', function () {
             paletteLines.push(`${idx}, 0x00${hex.substring(1)}`);
         });
         if (paletteLines.length)
-            lines.push('256 color palette: ' + paletteLines.join('; '));
+            lines.push('256 Color Palette: ' + paletteLines.join('; '));
 
         const extra = document.getElementById('prompt-input');
         if (extra && extra.value.trim()) {
@@ -972,9 +972,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
             // 256 color palette: 186, 0x00FFFFFF; ...
-            else if (line.startsWith('256 color palette:')) {
+            else if (line.startsWith('256 Color Palette:')) {
                 Object.keys(paletteEditTargets).forEach(key => delete paletteEditTargets[key]);
-                line.replace('256 color palette:', '').split(';').forEach(pair => {
+                line.replace('256 Color Palette:', '').split(';').forEach(pair => {
                     const [idx, hex] = pair.split(',').map(s => s.trim());
                     if (idx && hex && hex.startsWith('0x00')) {
                         const [b, g, r] = hexToRgb('#' + hex.substring(4));
