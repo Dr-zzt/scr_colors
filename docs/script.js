@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', function () {
+    const saved = localStorage.getItem('pluginInputText');
+    if (saved) {
+        document.getElementById('plugin-load-input').value = saved;
+    }
     // 각 색조 폼의 초기값
     const initialValues = {
         dragbox: { r: 0.0625, g: 0.9875, b: 0.094, a: 1   },
@@ -142,7 +146,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 변경 대상 렌더링 (컬러피커 연동)
     function render256PaletteEditTargets() {
-        if (!paletteEditTargetsContainer) return;
+        if (typeof paletteEditTargetsContainer === 'undefined') return;
         paletteEditTargetsContainer.innerHTML = '';
         Object.entries(paletteEditTargets).forEach(([idx, rgb]) => {
             const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
@@ -350,8 +354,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // 범용 선택 항목 렌더링
     function renderPaletteEditTargets({names, editTargets, editTargetsId, labelClass}) {
         const editTargetsElem = document.getElementById(editTargetsId);
-        if (!editTargetsElem) return;
+        if (typeof editTargetsElem === 'undefined') return;
         editTargetsElem.innerHTML = '';
+        console.log(editTargets);
         Object.entries(editTargets).forEach(([name, data]) => {
             const { colorIdx } = data;
             const color = getCurrentPaletteColor(colorIdx);
@@ -487,7 +492,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function renderWireframeFinalEditTargets() {
         const editTargetsElem = document.getElementById('wireframe-final-edit-targets');
-        if (!editTargetsElem) return;
+        if (typeof editTargetsElem === 'undefined') return;
         editTargetsElem.innerHTML = '';
 
         // wireframeFinalEditTargets는 인덱스 기반 객체 또는 배열
@@ -700,7 +705,6 @@ document.addEventListener('DOMContentLoaded', function () {
         let wireframePalettes = [];
         Object.entries(wireframeIntermediateEditTargets).forEach(([idx, data]) => {
             const { colorIdx } = data;
-            console.log(idx, colorIdx);
             wireframePalettes.push(`${idx}, ${colorIdx}`);
         });
         if (wireframePalettes.length)
@@ -819,6 +823,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         document.getElementById('plugin-input-pre').textContent = lines.join('\n');
+        localStorage.setItem('pluginInputText', document.getElementById('plugin-input-pre').textContent);
     }
 
     function resetAllData() {
@@ -863,7 +868,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // 화면 갱신
         if (typeof renderWireframeFinalEditTargets === 'function') renderWireframeFinalEditTargets();
-        if (typeof renderAllPaletteUIs === 'function') renderAllPaletteUIs();
+        if (typeof renderAllPaletteUIsAndPluginInput === 'function') renderAllPaletteUIsAndPluginInput();
         if (typeof updatePluginInputText ==='function') updatePluginInputText();
     }
 
