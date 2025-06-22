@@ -388,8 +388,7 @@ button[data-edit] {
     letter-spacing: 1px;
 }
 
-#textcode-color-options .dropdown .dropdown-content .color-table tr:hover td,
-#misc-color-options .dropdown .dropdown-content .color-table tr:hover td {
+.dropdown-content .color-table.non-grid tr:hover td {
     background: #e0e0e0;
     cursor: pointer;
     transition: background 0.15s;
