@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // 팔레트 셀 클릭 이벤트 추가
-    function addPaletteEditHandler() {
+    function add256PaletteEditHandler() {
         const paletteTable = document.getElementById('palette-table');
         if (!paletteTable) return;
         paletteTable.addEventListener('click', function (e) {
@@ -136,12 +136,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
             paletteEditTargets[colorIdx] = { r: rgb[0], g: rgb[1], b: rgb[2] };
-            renderEditTargets();
+            render256PaletteEditTargets();
         });
     }
 
     // 변경 대상 렌더링 (컬러피커 연동)
-    function renderEditTargets() {
+    function render256PaletteEditTargets() {
         if (!paletteEditTargetsContainer) return;
         paletteEditTargetsContainer.innerHTML = '';
         Object.entries(paletteEditTargets).forEach(([idx, rgb]) => {
@@ -205,7 +205,7 @@ document.addEventListener('DOMContentLoaded', function () {
             btn.addEventListener('click', function() {
                 const idx = this.dataset.remove;
                 delete paletteEditTargets[idx];
-                renderEditTargets();
+                render256PaletteEditTargets();
                 renderAllPaletteUIsAndPluginInput();
             });
         });
@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', function () {
         paletteTable.querySelector('tbody').innerHTML = html;
 
         // 표 렌더링 후 클릭 이벤트 연결
-        addPaletteEditHandler();
+        add256PaletteEditHandler();
     }
 
     // 초기 렌더링 및 드롭다운 이벤트
@@ -813,7 +813,247 @@ document.addEventListener('DOMContentLoaded', function () {
         if (paletteLines.length)
             lines.push('256 color palette: ' + paletteLines.join('; '));
 
+        const extra = document.getElementById('prompt-input');
+        if (extra && extra.value.trim()) {
+            lines.push(extra.value.trim());
+        }
+
         document.getElementById('plugin-input-pre').textContent = lines.join('\n');
     }
 
+    function resetAllData() {
+        // 주요 데이터 모두 초기화
+        if (typeof wireframeFinalEditTargets !== 'undefined') {
+            Object.keys(wireframeFinalEditTargets).forEach(key => delete wireframeFinalEditTargets[key]);
+        };
+        if (typeof paletteEditTargets !== 'undefined') {
+            Object.keys(paletteEditTargets).forEach(key => delete paletteEditTargets[key]);
+        };
+
+        // paletteUIs의 editTargets도 모두 초기화
+        if (typeof paletteUIs !== 'undefined') {
+            paletteUIs.forEach(ui => {
+                if (ui.editTargets) 
+                    Object.keys(ui.editTargets).forEach(key => delete ui.editTargets[key]);
+            });
+        }
+
+        // ARGB 폼 값 초기화 (예시: dragbox, shadow, screen)
+        ['dragbox-form', 'shadow-form', 'screen-form'].forEach(formId => {
+            const form = document.getElementById(formId);
+            if (form) {
+                form.querySelectorAll('input[type="number"]').forEach(input => {
+                    // 기본값으로 초기화 (필요시 값 수정)
+                    if (input.name === 'a-num') input.value = "1";
+                    if (input.name === 'r-num') input.value = formId === 'shadow-form' ? "0" : (formId === 'dragbox-form' ? "0.0625" : "1");
+                    if (input.name === 'g-num') input.value = formId === 'shadow-form' ? "0" : (formId === 'dragbox-form' ? "0.9875" : "1");
+                    if (input.name === 'b-num') input.value = formId === 'shadow-form' ? "0" : (formId === 'dragbox-form' ? "0.094" : "1");
+                    // 미리보기 갱신
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                });
+            }
+        });
+
+        // 추가 옵션 입력란 초기화
+        const promptInput = document.getElementById('prompt-input');
+        if (promptInput) promptInput.value = '';
+
+        const extraInput = document.getElementById('prompt-input');
+        extraInput.value = ''; // 기존 입력값 초기화
+
+        // 화면 갱신
+        if (typeof renderWireframeFinalEditTargets === 'function') renderWireframeFinalEditTargets();
+        if (typeof renderAllPaletteUIs === 'function') renderAllPaletteUIs();
+        if (typeof updatePluginInputText ==='function') updatePluginInputText();
+    }
+
+    document.getElementById('plugin-reset-btn').addEventListener('click', resetAllData);
+
+    document.getElementById('plugin-load-btn').addEventListener('click', function() {
+        const input = document.getElementById('plugin-load-input').value.trim();
+        if (!input) return;
+
+        resetAllData(); // 기존 데이터 초기화
+
+        // 줄 단위로 파싱
+        const lines = input.split('\n');
+        lines.forEach(line => {
+            if (line.startsWith('Wireframe Color:')) {
+                Object.keys(wireframeFinalEditTargets).forEach(key => delete wireframeFinalEditTargets[key]);
+                line.replace('Wireframe Color:', '').split(';').forEach(pair => {
+                    const [idx, val] = pair.split(',').map(s => s.trim());
+                    if (idx && val) {
+                        let nameIndex;
+                        if (Number(idx) < shieldStart * 4) {
+                            nameIndex = Math.floor(Number(idx) / 4);
+                        }
+                        else if (Number(idx) < shieldStart * 4 + (zergStart - shieldStart) * 2) {
+                            nameIndex = Math.floor((Number(idx) - shieldStart * 4) / 2) + shieldStart; // 실드 그룹
+                        }
+                        else {
+                            nameIndex = Math.floor((Number(idx) - (shieldStart * 4 + (zergStart - shieldStart) * 2)) / 4) + zergStart; // 저그 그룹
+                        }
+                        const name = `${idx} (${wireframeFinalGroups[nameIndex]})`;
+                        wireframeFinalEditTargets[idx] = { 
+                            name: name,
+                            colorIdx: Number(val)
+                        }
+                    }
+                });
+            }
+            // Wireframe Palette
+            else if (line.startsWith('Wireframe Palette:')) {
+                Object.keys(wireframeIntermediateEditTargets).forEach(key => delete wireframeIntermediateEditTargets[key]);
+                line.replace('Wireframe Palette:', '').split(';').forEach(pair => {
+                    const [name, idx] = pair.split(',').map(s => s.trim());
+                    if (name && idx) wireframeIntermediateEditTargets[name] = { name, colorIdx: Number(idx) };
+                });
+            }
+            // Selection Circle Palette
+            else if (line.startsWith('Selection Circle Palette:')) {
+                const ui = paletteUIs.find(ui => ui.tableId === 'selection-circle-table');
+                if (ui) {
+                    ui.editTargets = {};
+                    line.replace('Selection Circle Palette:', '').split(';').forEach(pair => {
+                        const [name, idx] = pair.split(',').map(s => s.trim());
+                        if (name && idx) ui.editTargets[name] = { name, colorIdx: Number(idx) };
+                    });
+                }
+            }
+            // Text Palette: ...
+            else if (line.startsWith('Text Palette:')) {
+                const ui = paletteUIs.find(ui => ui.tableId === 'textcode-table');
+                if (ui) {
+                    ui.editTargets = {};
+                    line.replace('Text Palette:', '').split(';').forEach(pair => {
+                        const [name, idx] = pair.split(',').map(s => s.trim());
+                        if (name && idx) ui.editTargets[name] = { name, colorIdx: Number(idx) };
+                    });
+                }
+            }
+            // Misc Palette: ...
+            else if (line.startsWith('Misc Palette:')) {
+                const ui = paletteUIs.find(ui => ui.tableId === 'misc-table');
+                if (ui) {
+                    ui.editTargets = {};
+                    line.replace('Misc Palette:', '').split(';').forEach(pair => {
+                        // 이름 변환: P0 ~ P15, fill, line, self, res
+                        const miscPaletteNameTable = {
+                            'P0': '초상화 노이즈 색 0',
+                            'P1': '초상화 노이즈 색 1',
+                            'P2': '초상화 노이즈 색 2',
+                            'P3': '초상화 노이즈 색 3',
+                            'P4': '초상화 노이즈 색 4',
+                            'P5': '초상화 노이즈 색 5',
+                            'P6': '초상화 노이즈 색 6',
+                            'P7': '초상화 노이즈 색 7',
+                            'P8': '초상화 노이즈 색 8',
+                            'P9': '초상화 노이즈 색 9',
+                            'P10': '초상화 노이즈 색 10',
+                            'P11': '초상화 노이즈 색 11',
+                            'P12': '초상화 노이즈 색 12',
+                            'P13': '초상화 노이즈 색 13',
+                            'P14': '초상화 노이즈 색 14',
+                            'P15': '초상화 노이즈 색 15',
+                            'fill': '버튼 툴팁 내부 색',
+                            'line': '버튼 툴팁 테두리 색',
+                            'self': '미니맵 아군 색',
+                            'res': '미니맵 자원 색'
+                        };
+                        const [name, idx] = pair.split(',').map(s => s.trim());
+                        const originalName = miscPaletteNameTable[name] || name; // 변환된 이름 또는 원본
+                        if (originalName && idx) ui.editTargets[originalName] = { originalName, colorIdx: Number(idx) };
+                    });
+                }
+            }
+            // 256 color palette: 186, 0x00FFFFFF; ...
+            else if (line.startsWith('256 color palette:')) {
+                Object.keys(paletteEditTargets).forEach(key => delete paletteEditTargets[key]);
+                line.replace('256 color palette:', '').split(';').forEach(pair => {
+                    const [idx, hex] = pair.split(',').map(s => s.trim());
+                    if (idx && hex && hex.startsWith('0x00')) {
+                        const [b, g, r] = hexToRgb('#' + hex.substring(4));
+                        if (b === undefined || g === undefined || r === undefined) return;
+                        paletteEditTargets[idx] = {r, g, b};
+                        console.log(paletteEditTargets);
+                    }
+                });
+            }
+            // Dragbox Color Filter: A, 1.0; R, 1.0; G, 0.05; B, 0.6
+            else if (line.startsWith('Dragbox Color Filter:')) {
+                const dragbox = document.getElementById('dragbox-form');
+                if (dragbox) {
+                    const vals = {};
+                    line.replace('Dragbox Color Filter:', '').split(';').forEach(pair => {
+                        const [k, v] = pair.split(',').map(s => s.trim());
+                        if (k && v) vals[k] = v;
+                    });
+                    ['a-num', 'r-num', 'g-num', 'b-num'].forEach(k => {
+                        const input = dragbox.querySelector(`input[name="${k}"]`);
+                        if (input && vals[k[0].toUpperCase()]) 
+                        {
+                            input.value = vals[k[0].toUpperCase()];
+                            input.dispatchEvent(new Event('input')); // 값 변경 이벤트 트리거
+                        }
+                    });
+                }
+            }
+            // Shadow Color Filter: ...
+            else if (line.startsWith('Shadow Color Filter:')) {
+                const shadow = document.getElementById('shadow-form');
+                if (shadow) {
+                    const vals = {};
+                    line.replace('Shadow Color Filter:', '').split(';').forEach(pair => {
+                        const [k, v] = pair.split(',').map(s => s.trim());
+                        if (k && v) vals[k] = v;
+                    });
+                    ['a-num', 'r-num', 'g-num', 'b-num'].forEach(k => {
+                        const input = shadow.querySelector(`input[name="${k}"]`);
+                        if (input && vals[k[0].toUpperCase()]) 
+                        {
+                            input.value = vals[k[0].toUpperCase()];
+                            input.dispatchEvent(new Event('input')); // 값 변경 이벤트 트리거
+                        }
+                    });
+                }
+            }
+            // Screen Color Filter: ...
+            else if (line.startsWith('Screen Color Filter:')) {
+                const screen = document.getElementById('screen-form');
+                if (screen) {
+                    const vals = {};
+                    line.replace('Screen Color Filter:', '').split(';').forEach(pair => {
+                        const [k, v] = pair.split(',').map(s => s.trim());
+                        if (k && v) vals[k] = v;
+                    });
+                    ['a-num', 'r-num', 'g-num', 'b-num'].forEach(k => {
+                        const input = screen.querySelector(`input[name="${k}"]`);
+                        if (input && vals[k[0].toUpperCase()]) 
+                        {
+                            input.value = vals[k[0].toUpperCase()];
+                            input.dispatchEvent(new Event('input')); // 값 변경 이벤트 트리거
+                        }
+                    });
+                }
+            }
+            else {
+                // 추가 입력 필드에 추가 (예: 프롬프트 입력)
+                const extraInput = document.getElementById('prompt-input');
+                if (extraInput) {
+                    const trimmed = line.trim();
+                    if (trimmed) {
+                        extraInput.value += (extraInput.value ? '\n' : '') + trimmed;
+                    }
+                }
+            }
+        });
+
+        // 각 UI 갱신
+        render256PaletteEditTargets();
+        renderAllPaletteUIsAndPluginInput();
+    });
+
+    document.getElementById('prompt-input').addEventListener('input', function() {
+        updatePluginInputText && updatePluginInputText();
+    });
 });

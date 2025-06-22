@@ -8,15 +8,45 @@
 <body>
     <div class="row">
         <div class="column">
-        <h2>플러그인 입력값</h2>
-        <div id="plugin-input-container" style="margin-bottom:16px;">
-            <div style="margin-bottom:8px;">
-            아래 내용을 플러그인 설정에 붙여넣으세요.
-            <button id="copy-plugin-input-btn" style="margin-left:8px;">클립보드에 복사</button>
+            <h2>플러그인 입력값</h2>
+            <div id="plugin-input-container" style="margin-bottom:16px;">
+                <div style="margin-bottom:8px;">
+                아래 내용을 플러그인 설정에 붙여넣으세요.
+                <button id="copy-plugin-input-btn" style="margin-left:8px;">클립보드에 복사</button>
+                </div>
+            </div>
+            <pre id="plugin-input-pre"></pre>
         </div>
-        <pre id="plugin-input-pre"></pre>
+        <div class="column">
+            <h2>추가 옵션 설정</h2>
+            <p>
+                조건 설정, 복구 등의 추가 옵션을 설정합니다.<br>
+                현재는 아래 입력란에 직접 입력해야 하나, 추후 더 편한 UI를 지원할 예정입니다.<br>
+            </p>
+            <prompt>
+                <textarea id="prompt-input" rows="4" 
+                    placeholder="::조건 설정 예시
+
+vName.AtLeast(1): Recover
+::vName 변수가 1 이상일 때 복구. 사전에 EUDRegisterObjectToNamespace('vName', 'vName')과 같이 해당 변수를 등록해야 합니다.
+
+Terran Marine, Exactly, 1; 0x59CCB0, AtMost, 2560: Wireframe Color, Selection Circle Palette
+::현재 플레이어가 마린이 정확히 1개 죽었으면서 EUD 오프셋 0x59CCB0이 최대 2560일 때 와이어프레임 색상과 선택원 색상을 변경합니다.
+::조건을 설정해 주지 않은 변경 사항은 게임 시작 시 즉시 적용됩니다.
+
+::로 시작하는 행은 주석으로, 영향을 주지 않습니다.
+"
+                    style="width: 90%; padding: 8px; font-size: 15px; border-radius: 6px; border:1px solid #cbe6fa; resize: vertical; height: 120px;"></textarea>
+            </prompt>
         </div>
-    </div>
+        <div class="column">
+            <h2>플러그인 설정 불러오기 및 현재 설정 초기화</h2>
+            <div id="plugin-load-container">
+                <textarea id="plugin-load-input" rows="7" style="width:90%; font-size:15px; border-radius:8px; border:1px solid #cbe6fa; padding:12px; background:#fafdff; margin-bottom:8px; resize: vertical;" placeholder="기존 설정을 불러오려면 여기에 플러그인 설정 내용을 붙여넣고 불러오기 버튼을 누르세요. 기존에 입력된 변경 사항은 전부 없어집니다."></textarea>
+                <button id="plugin-load-btn" style="padding: 8px 20px; background: #eaf6ff; border: 1px solid #b3d8fd; border-radius: 6px; color: #2176bd; font-weight: bold; cursor: pointer;">불러오기 (기존에 설정된 사항 전부 초기화됨)</button>
+                <button id="plugin-reset-btn" style="padding: 8px 20px; background: #fff3f3; border: 1px solid #f5b3b3; border-radius: 6px; color: #c22; font-weight: bold; cursor: pointer; margin-left: 8px;">초기화</button>
+            </div>
+        </div>
     </div>
     <div class="row">
         <div class="column">
@@ -290,5 +320,10 @@
     </div>
     <script src="constants.js"></script>
     <script src="script.js"></script>
+    <footer style="margin-top:40px; text-align:center; color:#888; font-size:14px;">
+        SCRColors Helper Website v1.0 (Last update: 25-06-23)<br>
+        Developed by Defender (zzt)<br>
+        SCRColors plugin originally made by Ninfia, updated to 4.0 by Defender. EWait trick discovered by 블라인드.
+    </footer>
 </body>
 </html>
