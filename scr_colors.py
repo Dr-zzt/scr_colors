@@ -100,7 +100,7 @@ Cond = { # Patch Condition
 cond_label_pairs: list[tuple[list, list[str]]] = []
 recover_condition = None
 
-print("[SC:R Colors v4.0.0] (Modified from v3.0, 25/06/07)")
+print("[SC:R Colors v4.0.0]\n더 편하게 이용하려면 https://dr-zzt.github.io/scr_colors/ 에 접속하세요.")
 
 def check_in_range(off, key):
 	for loc in Size[key]:
