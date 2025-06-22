@@ -111,15 +111,9 @@ def check_in_range(off, key):
 def float_to_hex(f):
 	return hex(struct.unpack('<I', struct.pack('<f', f))[0])
 
-def dec_or_hex_to_int(s):
-	try:
-		return int(s)
-	except ValueError:
-		return int(s, 16)
-
 def to_float(s):
 	try:
-		return float_to_hex(dec_or_hex_to_int(s) / 255)
+		return float_to_hex(int(s, 0) / 255)
 	except ValueError:
 		return float_to_hex(float(s))
 
@@ -193,7 +187,7 @@ for key, value in settings.items():
 				offset, val = ov.split(",")					
 
 				if shkey == "tp":
-					offset = dec_or_hex_to_int(offset)
+					offset = int(offset, 0)
 					colorcode = {0x02:0x01,0x03:0x09,0x04:0x11,0x05:0x19,0x06:0x21,0x07:0x29,0x08:0x41,0x0E:0x49,0x0F:0x51,0x10:0x59,0x11:0x61,0x15:0x69,0x16:0x71,0x17:0x79,0x18:0x81,0x19:0x89,0x1B:0x91,0x1C:0x99,0x1D:0xA1,0x1E:0xA9,0x1F:0xB9}
 					assert offset in colorcode, f"Invalid color code {offset} for {key}."
 					offset = colorcode[offset]
@@ -203,7 +197,7 @@ for key, value in settings.items():
 					assert offset in misccode, f"Invalid misc code {offset} for {key}."
 					offset = misccode[offset]
 				else:
-					offset = dec_or_hex_to_int(offset)
+					offset = int(offset, 0)
 					assert check_in_range(offset, shkey), f"Offset {offset} is out of range for {key}."
 
 				if shkey == "scp":
@@ -218,13 +212,13 @@ for key, value in settings.items():
 				
 				try: # if value is a number...
 					if shkey == "256p":
-						D[shkey][epd] = dec_or_hex_to_int(val)
+						D[shkey][epd] = int(val, 0)
 					elif epd not in D[shkey]:
-						D[shkey][epd] = (dec_or_hex_to_int(val) << (lsh*8)) + ((0 if epd >= 6 and shkey == "wfp" else getRaw(shkey,epd)) & lshmask[lsh])
+						D[shkey][epd] = (int(val, 0) << (lsh*8)) + ((0 if epd >= 6 and shkey == "wfp" else getRaw(shkey,epd)) & lshmask[lsh])
 						if recover_needed:
 							R[shkey][epd] = getRaw(shkey, epd)
 					elif not isinstance(D[shkey][epd], tuple):
-						D[shkey][epd] = (dec_or_hex_to_int(val) << (lsh*8)) + (D[shkey][epd] & lshmask[lsh])
+						D[shkey][epd] = (int(val, 0) << (lsh*8)) + (D[shkey][epd] & lshmask[lsh])
 					else:
 						raise ValueError(f"Constant value offset {offset}, {key} collides with variable value.")
 				except ValueError: # value is a variable name
@@ -272,7 +266,17 @@ for key, value in settings.items():
 						else:
 							con_final.append(Memory(ptr, mod, val))
 					else:
-						con_final.append(cond)
+						try:
+							unitID = EncodeUnit(c[0])
+						except EPError:
+							con_final.append(cond)
+						else:
+							try:
+								mod, val = eval(c[1]), int(c[2], 0)
+							except (IndexError, SyntaxError):
+								mod, val = Exactly, int(c[1], 0)
+							finally:
+								con_final.append(Deaths(f_getuserplayerid(), mod, val, unitID))
 				
 			# parse labels
 			for v in value.split(","):
