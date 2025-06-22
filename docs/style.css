@@ -1,0 +1,432 @@
+/* 전체 레이아웃 */
+html {
+    overflow-y: scroll;
+    font-family: 'Malgun Gothic', '맑은 고딕', Arial, sans-serif;
+    background: #f8f8f8;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background: #f8f8f8;
+    color: #222;
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px;
+    margin: 32px;
+}
+
+.column {
+    flex: 1;
+    min-width: 420px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    padding: 32px 24px;
+    margin-bottom: 32px;
+}
+
+.column p {
+    line-height: 1.7;
+    margin-bottom: 12px;
+}
+
+h2, h3 {
+    margin-top: 24px;
+    margin-bottom: 12px;
+    color: #2a3a5a;
+}
+
+.warning {
+    color: rgb(128, 0, 0);
+    font-weight: bold;
+    margin-bottom: 16px;
+    display: block;
+}
+
+.color-options-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.color-option {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ccc;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #fafafa;
+    min-width: 110px;
+    box-sizing: border-box;
+}
+
+.color-indicator {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    margin-right: 8px;
+    border: 1px solid #bbb;
+    vertical-align: middle;
+    background: #fff;
+    box-sizing: border-box;
+}
+
+.color-number {
+    font-weight: bold;
+    font-size: 15px;
+}
+
+input[type="checkbox"] {
+    accent-color: #2a3a5a;
+    width: 18px;
+    height: 18px;
+}
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-indicator {
+    display: inline-block;
+    background-color: wheat;
+    color: #222;
+    padding: 4px 10px;
+    font-size: 18px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 8px;
+}
+
+.dropdown-content {
+    display: none;
+    overflow-y: auto;
+    overflow-x: hidden; /* 가로 스크롤바 방지 */
+    padding: 0;
+    box-sizing: border-box;
+    background-color: #f1f1f1;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.12);
+    z-index: 10;
+    white-space: nowrap;
+    border-radius: 8px;
+    padding: 8px;
+    left: 0;
+    position: absolute;
+    max-height: 320px;
+}
+
+#palette-256-container .dropdown-content {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    width: 420px;
+    min-width: 320px;
+}
+
+.dropdown-content a {
+    box-sizing: border-box;
+    color: #222;
+    padding: 8px 10px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    background: #fff;
+    transition: background 0.15s;
+}
+
+.dropdown-content a:hover {
+    background-color: #e6e6e6;
+}
+
+.dropdown:hover .dropdown-content {
+    display: grid;
+}
+
+pre#output {
+    border: 1px solid #bbb;
+    background: #f4f4f4;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 15px;
+    margin-top: 12px;
+    overflow-x: auto;
+}
+
+button {
+    background: #2a3a5a;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 7px 18px;
+    font-size: 15px;
+    cursor: pointer;
+    margin: 4px 0;
+    transition: background 0.15s;
+}
+button:hover {
+    background: #1a253a;
+}
+
+input[type="text"], input[type="number"] {
+    border: 1px solid #bbb;
+    border-radius: 5px;
+    padding: 5px 8px;
+    font-size: 15px;
+    margin-right: 6px;
+}
+
+.requirement {
+    margin: 8px 0;
+    padding: 8px 12px;
+    background: #fffbe7;
+    border: 1px solid #ffe0a3;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.color-table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 18px;
+    background: #fff;
+}
+
+.color-table th,
+.color-table td {
+    border: 1px solid #bbb;
+    padding: 8px 10px;
+    text-align: center;
+    font-size: 15px;
+}
+
+.color-table th {
+    background: #f0f4fa;
+    color: #2a3a5a;
+}
+
+.color-table td {
+    background: #fafbfc;
+}
+
+#copy-success {
+    color: #2a3a5a;
+    font-weight: bold;
+    margin-left: 10px;
+}
+
+.color-filter-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.color-filter-controls label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 14px;
+    color: #2a3a5a;
+    gap: 4px;
+}
+
+.color-filter-form {
+    width: 100%;
+}
+
+.color-preview {
+    width: 60px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid #bbb;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    transition: background 0.2s;
+    display: inline-block;
+}
+
+/* 256색 팔레트 드롭다운 전용 스타일 */
+#palette-256-container .dropdown-content {
+    min-width: 448px;   /* 16*26 + 16~18px(스크롤바) + 여유 */
+    width: 448px;
+    max-width: none;
+    max-height: 340px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+#palette-256-container .color-table {
+    border-collapse: collapse;
+    width: 432px;       /* 16*27=432, 셀 여유 */
+    min-width: 432px;
+    max-width: 432px;
+    table-layout: fixed;
+}
+
+#palette-256-container .color-table td {
+    width: 27px;
+    min-width: 27px;
+    max-width: 27px;
+    padding: 2px 2px;
+    text-align: center;
+    font-size: 11px;
+    height: 24px;
+    box-sizing: border-box;
+}
+
+.palette-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.palette-cell .color-indicator {
+    display: block;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    margin: 0 auto 1px auto;
+    border: 1px solid #bbb;
+    background: #fff;
+    box-sizing: border-box;
+}
+
+#palette-256-container .color-table td:hover {
+    background: #e0e0e0;      /* 밝은 회색 배경으로 호버 효과 */
+    cursor: pointer;          /* 포인터 커서 */
+    transition: background 0.15s;
+}
+
+.edit-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+    min-width: 320px;
+}
+
+.edit-row > span:first-child {
+    min-width: 48px;
+    text-align: center;
+}
+
+.edit-color-preview {
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    border: 1px solid #bbb;
+    margin-right: 4px;
+    background: #fff;
+    box-sizing: border-box;
+    min-width: 22px;
+}
+
+#palette-edit-targets input[type="color"] {
+    width: 32px;
+    height: 32px;
+    padding: 2;
+    margin: 4 4px;
+    appearance: auto;
+    -webkit-appearance: auto;
+    cursor: pointer;
+}
+
+#palette-edit-targets input[type="number"] {
+    min-width: 50px;
+    width: 50px;
+    font-size: 14px;
+    padding: 2px 4px;
+    margin: 0 2px;
+    box-sizing: border-box;
+}
+
+button[data-remove] {
+    min-width: 60px;
+    padding: 6px 12px;
+    font-size: 15px;
+}
+
+button[data-edit] {
+    min-width: 60px;
+    padding: 6px 12px;
+    font-size: 15px;
+}
+
+.reset-btn {
+    margin-left: 12px;
+    padding: 4px 12px;
+    font-size: 14px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    background: #fff;
+    color: #222;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.reset-btn:hover {
+    background: #f0f0f0;
+    border-color: #888;
+}
+
+/* \x02~\x1F 라벨을 고정폭 폰트로 */
+.textcode-label {
+    font-family: 'Consolas', 'Menlo', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    letter-spacing: 1px;
+}
+
+#textcode-color-options .dropdown-content .color-table tr:hover td {
+    background: #e0e0e0;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.palette-edit-dropdown {
+    min-width: 420px;
+    width: 448px;
+    max-width: none;
+    max-height: 340px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0;
+    box-sizing: border-box;
+    background: #fff;
+    border: 1px solid #bbb;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    margin-top: 4px;
+}
+
+.palette-edit-dropdown .color-table td {
+    width: 27px;
+    min-width: 27px;
+    max-width: 27px;
+    padding: 2px 2px;
+    text-align: center;
+    font-size: 11px;
+    height: 24px;
+    box-sizing: border-box;
+}
+
+.palette-edit-dropdown.dropdown-content {
+    display: grid;
+}
+
+.palette-edit-dropdown .color-table td:hover {
+    background: #e0e0e0;
+    cursor: pointer;
+    transition: background 0.15s;
+}
