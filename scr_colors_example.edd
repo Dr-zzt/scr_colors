@@ -14,15 +14,16 @@ output: ./output.scx
 ::[wf_colors]
 
 [./scr_colors.py]
-Wireframe Color: 16, 20; 17, 20; 56, 20; 57, 20
-Wireframe Palette: 1, 164; 3, 85; 4, 83; 5, 85
-Selection Circle Palette: 0, 128
-Text Palette: 3, 83
-Misc Palette: P0, 34; P1, 173; P2, 53; P3, 182; P4, 103; P5, 121; P6, 23; P7, 10; fill, 100; line, 255
-Dragbox Color Filter: A, 0.3; R, 0.8; G, 0.05; B, 0.6
-Shadow Color Filter: A, 0.5; R, 0.6; G, 0.6; B, 1.0
-Screen Color Filter: A, 1.0; R, 1.0; G, 1.0; B, 1.0
-P1_marine_deaths.AtLeast(1): Recover
+::Wireframe Color: 16, 20; 17, 20; 56, 20; 57, 20
+::Wireframe Palette: 1, 164; 3, 85; 4, 83; 5, 85
+::Selection Circle Palette: 0, 128
+Text Palette: 3, 164
+::Misc Palette: P0, 34; P1, 173; P2, 53; P3, 182; P4, 103; P5, 121; P6, 23; P7, 10; fill, 100; line, 255
+::Dragbox Color Filter: A, 1.0; R, 1.0; G, 0.05; B, 0.6
+::Shadow Color Filter: A, 1.0; R, 6.0; G, 6.0; B, 6.0
+::Screen Color Filter: A, 1.0; R, 1.0; G, 1.0; B, 1.0
+P1_marine_deaths.AtLeast(1): Selection Circle Palette
+P1_marine_deaths.AtLeast(2): Recover
 
 ::[./scr_colors_3.py]
 ::Wireframe Color: (16, 19), (17, 19), (18, 20), (19, 20), (56, 19), (57, 19), (58, 20), (59, 20)

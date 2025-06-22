@@ -178,6 +178,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     row.querySelector('input[data-c="b"]').value = b;
                     row.querySelector('.edit-color-preview').style.background = `rgb(${r},${g},${b})`;
                 }
+                renderTextcodeEditTargets();
+                renderTextcodeTable();
             });
         });
 
@@ -196,6 +198,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     row.querySelector('.edit-color-preview').style.background = `rgb(${r},${g},${b})`;
                     row.querySelector('input[type="color"]').value = rgbToHex(r, g, b);
                 }
+                renderTextcodeEditTargets();
+                renderTextcodeTable();
             });
         });
 
@@ -205,6 +209,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 const idx = this.dataset.remove;
                 delete paletteEditTargets[idx];
                 renderEditTargets();
+                renderTextcodeEditTargets();
+                renderTextcodeTable();
             });
         });
     }
@@ -257,20 +263,38 @@ document.addEventListener('DOMContentLoaded', function () {
     const textcodeEditTargets = document.getElementById('textcode-edit-targets');
     const selectedTextcodeRows = {}; // {code: {idx, colorIdx}}
 
+
+    // 텍스트 코드 색의 미리보기 색상 계산 함수
+    function getCurrentPaletteColor(idx) {
+        if (paletteEditTargets[idx]) {
+            const { r, g, b } = paletteEditTargets[idx];
+            return `rgb(${r},${g},${b})`;
+        }
+        // 원본 팔레트 색상(hex) → rgb 변환
+        const palette = colorTagTable[Number(tilesetSelect.value)];
+        const hex = palette[idx];
+        if (hex.startsWith('#')) {
+            const r = parseInt(hex.substr(1, 2), 16);
+            const g = parseInt(hex.substr(3, 2), 16);
+            const b = parseInt(hex.substr(5, 2), 16);
+            return `rgb(${r},${g},${b})`;
+        }
+        return hex; // 혹시 rgb 문자열이면 그대로 반환
+    }
+
     function renderTextcodeEditTargets() {
         if (!textcodeEditTargets) return;
         textcodeEditTargets.innerHTML = '';
         Object.entries(selectedTextcodeRows).forEach(([code, data]) => {
             const { idx, colorIdx } = data;
-            const palette = colorTagTable[Number(tilesetSelect.value)];
-            const color = palette[colorIdx];
+            const color = getCurrentPaletteColor(colorIdx);
             const row = document.createElement('div');
             row.className = 'edit-row';
             row.innerHTML = `
                 <span class="textcode-label" style="min-width:48px;">${idx}</span>
                 <span class="edit-color-preview" style="background:${color};"></span>
                 <span class="color-number" style="min-width:40px;">${colorIdx}</span>
-                <button type="button" data-edit="${code}" style="margin-left:8px;">수정</button>
+                <button type="button" data-edit="${code}" style="margin-left:8px;">변경</button>
                 <button type="button" data-remove="${code}" style="margin-left:8px;">삭제</button>
             `;
             textcodeEditTargets.appendChild(row);
@@ -285,7 +309,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
         
-        // 수정 버튼 이벤트
+        //  버튼 이벤트
         textcodeEditTargets.querySelectorAll('button[data-edit]').forEach(btn => {
             btn.addEventListener('click', function() {
                 const code = this.dataset.edit;
@@ -383,17 +407,17 @@ document.addEventListener('DOMContentLoaded', function () {
     // 텍스트 코드 팔레트 표 렌더링 후 클릭 이벤트 연결
     function renderTextcodeTable() {
         if (!tilesetSelect || !textcodeTable) return;
-        const palette = colorTagTable[Number(tilesetSelect.value)];
         let html = '';
         for (let i = 0; i < textCodePaletteIndices.length; i++) {
             const code = i; // 0x02~0x1F
             if (!(i in colorCode)) continue;
             const idx = textCodePaletteIndices[colorCode[i]];
             const hex = code.toString(16).toUpperCase().padStart(2, '0');
+            const color = getCurrentPaletteColor(idx);
             html += `
                 <tr>
                     <td><span class="textcode-label">\\x${hex}</span></td>
-                    <td><span class="color-indicator" style="background:${palette[idx]}"></span></td>
+                    <td><span class="color-indicator" style="background:${color}"></span></td>
                     <td><span class="color-number">${idx}</span></td>
                 </tr>
             `;
@@ -407,4 +431,179 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 초기 렌더링
     renderTextcodeTable();
+
+
+    // 기타 색 항목 이름과 팔레트 인덱스(예시, 실제 인덱스는 필요에 따라 수정)
+    const miscColorNames = [
+        '초상화 노이즈 색 0',
+        '초상화 노이즈 색 1',
+        '초상화 노이즈 색 2',
+        '초상화 노이즈 색 3',
+        '초상화 노이즈 색 4',
+        '초상화 노이즈 색 5',
+        '초상화 노이즈 색 6',
+        '초상화 노이즈 색 7',
+        '초상화 노이즈 색 8',
+        '초상화 노이즈 색 9',
+        '초상화 노이즈 색 10',
+        '초상화 노이즈 색 11',
+        '초상화 노이즈 색 12',
+        '초상화 노이즈 색 13',
+        '초상화 노이즈 색 14',
+        '초상화 노이즈 색 15',
+        '버튼 툴팁 내부 색',
+        '버튼 툴팁 테두리 색',
+        '미니맵 아군 색',
+        '미니맵 자원 색'
+    ];
+    const miscColorNamesCorrespondence = [
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 15, 16, 18, 25
+    ];
+    const miscColorIndices = [
+        0xFF,0x54,0x54,0x53,0x51,0x99,0x4E,0x96,0x4A,0x49,0x47,0x90,0xEF,0x42,0x8B,0xCF,0xA5,0x87,0x75,0xB9,0xAE,0x9C,0x7C,0x14,0x99,0x80,0x00,0x00,0x00,0x00,0x00,0x00
+    ];
+
+    // 선택된 기타 색 항목 저장
+    const selectedMiscRows = {}; // {name: {name, colorIdx}}
+
+    // 기타 색 드롭다운 표 렌더링
+    function renderMiscTable() {
+        let html = '';
+        for (let i = 0; i < miscColorNames.length; i++) {
+            const name = miscColorNames[i];
+            const idx = miscColorIndices[miscColorNamesCorrespondence[i]];
+            const color = getCurrentPaletteColor(idx);
+            html += `
+                <tr>
+                    <td><span class="misc-label">${name}</span></td>
+                    <td><span class="color-indicator" style="background:${color};"></span></td>
+                    <td><span class="color-number">${idx}</span></td>
+                </tr>
+            `;
+        }
+        miscTable.querySelector('tbody').innerHTML = html;
+        addMiscTableHandler();
+    }
+
+    // 기타 색 선택 항목 렌더링
+    function renderMiscEditTargets() {
+        miscEditTargets.innerHTML = '';
+        Object.entries(selectedMiscRows).forEach(([name, data]) => {
+            const { colorIdx } = data;
+            const color = getCurrentPaletteColor(colorIdx);
+            const row = document.createElement('div');
+            row.className = 'edit-row';
+            row.innerHTML = `
+                <span class="misc-label" style="min-width:150px;">${name}</span>
+                <span class="edit-color-preview" style="background:${color};"></span>
+                <span class="color-number" style="min-width:40px;">${colorIdx}</span>
+                <button type="button" data-edit="${name}" style="margin-left:8px;">변경</button>
+                <button type="button" data-remove="${name}" style="margin-left:8px;">삭제</button>
+            `;
+            miscEditTargets.appendChild(row);
+        });
+
+        // 삭제 버튼 이벤트
+        miscEditTargets.querySelectorAll('button[data-remove]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const name = this.dataset.remove;
+                delete selectedMiscRows[name];
+                renderMiscEditTargets();
+            });
+        });
+
+        // 수정 버튼 이벤트 (256색 팔레트 드롭다운 재활용)
+        miscEditTargets.querySelectorAll('button[data-edit]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const name = this.dataset.edit;
+                showPaletteDropdownForMisc(name, btn);
+            });
+        });
+    }
+
+    // 기타 색 드롭다운 행 클릭 이벤트
+    function addMiscTableHandler() {
+        miscTable.addEventListener('click', function(e) {
+            const tr = e.target.closest('tr');
+            if (!tr) return;
+            const label = tr.querySelector('.misc-label');
+            const colorNum = tr.querySelector('.color-number');
+            if (!label || !colorNum) return;
+            const name = label.textContent;
+            const colorIdx = parseInt(colorNum.textContent, 10);
+            if (selectedMiscRows[name]) return; // 이미 추가된 항목은 중복 추가 안 함
+            selectedMiscRows[name] = { name, colorIdx };
+            renderMiscEditTargets();
+        });
+    }
+
+    // 기타 색 수정용 256색 팔레트 드롭다운
+    function showPaletteDropdownForMisc(name, anchorBtn) {
+        document.querySelectorAll('.palette-edit-dropdown').forEach(el => el.remove());
+
+        const palette = colorTagTable[Number(tilesetSelect.value)];
+        const dropdown = document.createElement('div');
+        dropdown.className = 'palette-edit-dropdown dropdown-content';
+        dropdown.style.position = 'absolute';
+        dropdown.style.zIndex = 1000;
+
+        // 팔레트 표 생성 (palette-cell 구조 재활용)
+        let html = '<table class="color-table"><tbody>';
+        for (let row = 0; row < 16; row++) {
+            html += '<tr>';
+            for (let col = 0; col < 16; col++) {
+                const idx = row * 16 + col;
+                html += `<td data-idx="${idx}" style="cursor:pointer;">
+                    <div class="palette-cell">
+                        <span class="color-indicator" style="background:${palette[idx]}"></span>
+                        <span>${idx}</span>
+                    </div>
+                </td>`;
+            }
+            html += '</tr>';
+        }
+        html += '</tbody></table>';
+        dropdown.innerHTML = html;
+
+        // 팔레트 셀 클릭 이벤트
+        dropdown.querySelectorAll('td[data-idx]').forEach(td => {
+            td.addEventListener('click', function() {
+                const idx = Number(this.dataset.idx);
+                selectedMiscRows[name].colorIdx = idx;
+                renderMiscEditTargets();
+                renderMiscTable(); // 드롭다운 표도 즉시 반영
+                dropdown.remove();
+            });
+        });
+
+        // 바깥 클릭 시 닫기
+        function closeDropdown(e) {
+            if (!dropdown.contains(e.target)) {
+                dropdown.remove();
+                document.removeEventListener('mousedown', closeDropdown);
+            }
+        }
+        setTimeout(() => {
+            document.addEventListener('mousedown', closeDropdown);
+        }, 0);
+
+        // anchorBtn(수정 버튼) 바로 아래에 드롭다운 표시
+        const rect = anchorBtn.getBoundingClientRect();
+        dropdown.style.left = rect.left + window.scrollX + 'px';
+        dropdown.style.top = rect.bottom + window.scrollY + 'px';
+
+        document.body.appendChild(dropdown);
+    }
+
+    // --- 초기화 및 이벤트 연결 ---
+    const miscTable = document.getElementById('misc-table');
+    const miscEditTargets = document.getElementById('misc-edit-targets');
+
+    // 페이지 로드 및 타일셋 변경 시 호출
+    function renderAllMisc() {
+        renderMiscTable();
+        renderMiscEditTargets();
+    }
+    tilesetSelect.addEventListener('change', renderAllMisc);
+    renderAllMisc();
 });
