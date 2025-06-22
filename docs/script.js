@@ -328,7 +328,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const opened = document.querySelectorAll('.palette-edit-dropdown');
         if (opened.length > 0) {
             opened.forEach(el => el.remove());
-            console.log('기존 드롭다운 닫음');
             return;
         }
 
@@ -539,7 +538,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 기타 색 수정용 256색 팔레트 드롭다운
     function showPaletteDropdownForMisc(name, anchorBtn) {
-        document.querySelectorAll('.palette-edit-dropdown').forEach(el => el.remove());
+        // 이미 열려있는 드롭다운이 있으면 닫고 함수 종료
+        const opened = document.querySelectorAll('.palette-edit-dropdown');
+        if (opened.length > 0) {
+            opened.forEach(el => el.remove());
+            return;
+        }
 
         const palette = colorTagTable[Number(tilesetSelect.value)];
         const dropdown = document.createElement('div');
@@ -576,9 +580,8 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
 
-        // 바깥 클릭 시 닫기
         function closeDropdown(e) {
-            if (!dropdown.contains(e.target)) {
+            if (!dropdown.contains(e.target) && !anchorBtn.contains(e.target)) {
                 dropdown.remove();
                 document.removeEventListener('mousedown', closeDropdown);
             }

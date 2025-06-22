@@ -13,7 +13,7 @@
                 유닛 선택 시 표시되는 와이어프레임의 색상을 설정합니다.<br>
                 부상 정도에 따라 어떤 색상을 쓸지를 결정하며, 아래의 '와이어프레임 팔레트'와 연동됩니다.
             </p>
-            <div id="wireframe-color-options" class="color-options-container">
+            <div id="wireframe-color-options" class="color-options-container" style="flex-direction: column;">
                 <div class="dropdown">
                     <div class="dropdown-indicator">팔레트 선택 ▼</div>
                     <div class="dropdown-content">
@@ -38,6 +38,29 @@
                                         <span class="color-number">4</span>
                                     </td>
                                 </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <h2>선택원 색</h2>
+            <p>
+                게임 내 선택원의 색상을 변경합니다.<br>
+                또한 화면 출력 기능 (일명 '다시그리기')도 여기에 영향을 받습니다.<br>
+                256색 팔레트의 색상을 참조합니다.
+            </p>
+            <div id="selection-circle-color-options" class="color-options-container" style="flex-direction: column;">
+                <div id="selection-circle-edit-targets" style="margin-bottom:16px; max-height:180px; overflow-y:auto;">
+                    <!-- JS로 항목이 추가됩니다 -->
+                </div>
+                <div class="dropdown">
+                    <div class="dropdown-indicator">선택원 색 팔레트 ▼</div>
+                    <div class="dropdown-content">
+                        <table class="color-table" id="selection-circle-table">
+                            <tbody>
+                                <!-- JS로 자동 생성 -->
                             </tbody>
                         </table>
                     </div>
