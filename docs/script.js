@@ -309,6 +309,18 @@ document.addEventListener('DOMContentLoaded', function () {
             tableId: 'selection-circle-table',
             editTargetsId: 'selection-circle-edit-targets',
             labelClass: 'selection-circle-label'
+        },
+        {
+            // 와이어프레임 색상표
+            names: [
+                ...Array.from({length: 24}, (_, i) => String(i)),           // '0' ~ '23'
+            ],
+            indices: wireframeIntermediateIndices, 
+            mapping: null, 
+            editTargets: {},
+            tableId: 'wireframe-intermediate-table',
+            editTargetsId: 'wireframe-intermediate-edit-targets',
+            labelClass: 'wireframe-intermediate-label'
         }
     ];
 
@@ -364,7 +376,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <span class="${labelClass}" style="min-width:150px;">${name}</span>
                 <span class="edit-color-preview" style="background:${color};"></span>
                 <span class="color-number" style="min-width:40px;">${colorIdx}</span>
-                <button type="button" data-edit="${name}" style="margin-left:8px;">수정</button>
+                <button type="button" data-edit="${name}" style="margin-left:8px;">변경</button>
                 <button type="button" data-remove="${name}" style="margin-left:8px;">삭제</button>
             `;
             editTargetsElem.appendChild(row);

@@ -11,33 +11,41 @@
             <h2>와이어프레임 색</h2>
             <p>
                 유닛 선택 시 표시되는 와이어프레임의 색상을 설정합니다.<br>
-                부상 정도에 따라 어떤 색상을 쓸지를 결정하며, 아래의 '와이어프레임 팔레트'와 연동됩니다.
+                부상 정도에 따라 어떤 색상을 쓸지를 결정합니다.<br>
+                '와이어프레임 색상표'의 색을 참조합니다.
             </p>
-            <div id="wireframe-color-options" class="color-options-container" style="flex-direction: column;">
+            <div id="wireframe-final-color-options" class="color-options-container" style="flex-direction: column;">
+                <div id="wireframe-final-edit-targets" style="margin-bottom:16px; max-height:180px; overflow-y:auto;">
+                    <!-- JS로 항목이 추가됩니다 -->
+                </div>
                 <div class="dropdown">
-                    <div class="dropdown-indicator">팔레트 선택 ▼</div>
+                    <div class="dropdown-indicator">색상 보기 ▼</div>
                     <div class="dropdown-content">
-                        <table class="color-table">
+                        <table class="color-table non-grid" id="wireframe-final-table">
                             <tbody>
-                                <tr>
-                                    <td>테/프A 0/9</td>
-                                    <td>
-                                        <span class="color-indicator" style="background:#ff0000;"></span>
-                                        <span class="color-number">1</span>
-                                    </td>
-                                    <td>
-                                        <span class="color-indicator" style="background:#00ff00;"></span>
-                                        <span class="color-number">2</span>
-                                    </td>
-                                    <td>
-                                        <span class="color-indicator" style="background:#0000ff;"></span>
-                                        <span class="color-number">3</span>
-                                    </td>
-                                    <td>
-                                        <span class="color-indicator" style="background:#ffff00;"></span>
-                                        <span class="color-number">4</span>
-                                    </td>
-                                </tr>
+                                <!-- JS로 자동 생성 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <h2>와이어프레임 색상표</h2>
+            <p>
+                와이어프레임 색상표에 있는 색을 바꿉니다.<br>
+                '256색 팔레트'의 색상을 참조합니다.
+            </p>
+            <div id="wireframe-intermediate-color-options" class="color-options-container" style="flex-direction: column;">
+                <div id="wireframe-intermediate-edit-targets" style="margin-bottom:16px; max-height:180px; overflow-y:auto;">
+                    <!-- JS로 항목이 추가됩니다 -->
+                </div>
+                <div class="dropdown">
+                    <div class="dropdown-indicator">색상 보기 ▼</div>
+                    <div class="dropdown-content">
+                        <table class="color-table non-grid" id="wireframe-intermediate-table">
+                            <tbody>
+                                <!-- JS로 자동 생성 -->
                             </tbody>
                         </table>
                     </div>
@@ -49,14 +57,14 @@
             <p>
                 게임 내 선택원의 색상을 변경합니다.<br>
                 또한 화면 출력 기능 (일명 '다시그리기')도 여기에 영향을 받습니다.<br>
-                256색 팔레트의 색상을 참조합니다.
+                '256색 팔레트'의 색상을 참조합니다.
             </p>
             <div id="selection-circle-color-options" class="color-options-container" style="flex-direction: column;">
                 <div id="selection-circle-edit-targets" style="margin-bottom:16px; max-height:180px; overflow-y:auto;">
                     <!-- JS로 항목이 추가됩니다 -->
                 </div>
                 <div class="dropdown">
-                    <div class="dropdown-indicator">선택원 색 팔레트 ▼</div>
+                    <div class="dropdown-indicator">색상 보기 ▼</div>
                     <div class="dropdown-content">
                         <table class="color-table non-grid" id="selection-circle-table">
                             <tbody>
@@ -78,7 +86,7 @@
                     <!-- JS로 항목이 추가됩니다 -->
                 </div>
                 <div class="dropdown">
-                    <div class="dropdown-indicator">텍스트 코드 팔레트 ▼</div>
+                    <div class="dropdown-indicator">색상 보기 ▼</div>
                     <div class="dropdown-content">
                         <table class="color-table non-grid" id="textcode-table">
                             <tbody>
@@ -100,7 +108,7 @@
                     <!-- JS로 항목이 추가됩니다 -->
                 </div>
                 <div class="dropdown">
-                    <div class="dropdown-indicator">기타 색 팔레트 ▼</div>
+                    <div class="dropdown-indicator">색상 보기 ▼</div>
                     <div class="dropdown-content">
                         <table class="color-table non-grid" id="misc-table">
                             <tbody>
@@ -136,7 +144,7 @@
                     <!-- JS로 항목이 추가됩니다 -->
                 </div>
                 <div class="dropdown">
-                    <div class="dropdown-indicator">팔레트 보기 ▼</div>
+                    <div class="dropdown-indicator">색상 보기 ▼</div>
                     <div class="dropdown-content">
                         <table class="color-table" id="palette-table">
                             <tbody>
