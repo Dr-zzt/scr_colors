@@ -178,8 +178,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     row.querySelector('input[data-c="b"]').value = b;
                     row.querySelector('.edit-color-preview').style.background = `rgb(${r},${g},${b})`;
                 }
-                renderTextcodeEditTargets();
-                renderTextcodeTable();
+                renderAllPaletteUIs();
             });
         });
 
@@ -198,8 +197,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     row.querySelector('.edit-color-preview').style.background = `rgb(${r},${g},${b})`;
                     row.querySelector('input[type="color"]').value = rgbToHex(r, g, b);
                 }
-                renderTextcodeEditTargets();
-                renderTextcodeTable();
+                renderAllPaletteUIs();
             });
         });
 
@@ -209,8 +207,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const idx = this.dataset.remove;
                 delete paletteEditTargets[idx];
                 renderEditTargets();
-                renderTextcodeEditTargets();
-                renderTextcodeTable();
+                renderAllPaletteUIs();
             });
         });
     }
@@ -248,6 +245,9 @@ document.addEventListener('DOMContentLoaded', function () {
             render256PaletteTable(Number(this.value));
         });
     }
+
+    // 예시: 80개 색상
+    const wireframeIntermediateEditTargets = {};
 
     const paletteUIs = [
         {
@@ -317,7 +317,7 @@ document.addEventListener('DOMContentLoaded', function () {
             ],
             indices: wireframeIntermediateIndices, 
             mapping: null, 
-            editTargets: {},
+            editTargets: wireframeIntermediateEditTargets,
             tableId: 'wireframe-intermediate-table',
             editTargetsId: 'wireframe-intermediate-edit-targets',
             labelClass: 'wireframe-intermediate-label'
@@ -475,12 +475,185 @@ document.addEventListener('DOMContentLoaded', function () {
         document.body.appendChild(dropdown);
     }
 
+    // 그룹명 배열 (예시: '테/프A 0/9' ~ '테/프A 9/9', '테/프B 0/9' ~ '테/프B 9/9')
+    const wireframeFinalGroups = [
+        ...Array.from({length: 10}, (_, i) => `테/프A ${i}/9`),
+        ...Array.from({length: 10}, (_, i) => `테/프B ${i}/9`),
+        ...Array.from({length: 8}, (_, i) => `실드 ${i}/7`),
+        ...Array.from({length: 6}, (_, i) => `저그 ${i}/5`),
+    ];
+    const shieldStart = wireframeFinalGroups.indexOf('실드 0/7');
+    const zergStart = wireframeFinalGroups.indexOf('저그 0/5');
+
+    const wireframeFinalEditTargets = {};
+
+    // wireframeFinalPalette는 256색 팔레트 배열(수정사항 반영 함수 사용)
+    function getCurrentWireframeFinalColor(idx) {
+        let intermediateIdx;
+        if (wireframeIntermediateEditTargets && wireframeIntermediateEditTargets[idx] !== undefined) {
+            intermediateIdx = wireframeIntermediateEditTargets[idx].colorIdx;
+        } 
+        else {
+            intermediateIdx = wireframeIntermediateIndices[idx];
+        }
+        return getCurrentPaletteColor(intermediateIdx);
+    }
+
+    function renderWireframeFinalEditTargets() {
+        const editTargetsElem = document.getElementById('wireframe-final-edit-targets');
+        if (!editTargetsElem) return;
+        editTargetsElem.innerHTML = '';
+
+        // wireframeFinalEditTargets는 인덱스 기반 객체 또는 배열
+        Object.entries(wireframeFinalEditTargets).forEach(([i, name_and_idx]) => {
+            const [name, colorIdx] = name_and_idx;
+            const color = getCurrentWireframeFinalColor(Number(colorIdx));
+
+            const row = document.createElement('div');
+            row.className = 'edit-row';
+            row.innerHTML = `
+                <span class="wireframe-final-label" style="min-width:48px;">${name}</span>
+                <span class="edit-color-preview" style="background:${color};"></span>
+                <span class="color-number" style="min-width:40px;">${colorIdx}</span>
+                <button type="button" data-edit="${i}" style="margin-left:8px;">변경</button>
+                <button type="button" data-remove="${i}" style="margin-left:8px;">삭제</button>
+            `;
+            editTargetsElem.appendChild(row);
+        });
+
+        // 삭제 버튼 이벤트
+        editTargetsElem.querySelectorAll('button[data-remove]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const idx = this.dataset.remove;
+                delete wireframeFinalEditTargets[idx];
+                renderWireframeFinalEditTargets();
+            });
+        });
+
+        // 수정 버튼 이벤트 (256색 팔레트 드롭다운)
+        editTargetsElem.querySelectorAll('button[data-edit]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const idx = Number(this.dataset.edit);
+                showPaletteDropdownForWireframeFinal(idx, btn);
+            });
+        });
+    }
+        
+    function showPaletteDropdownForWireframeFinal(idx, anchorBtn) {
+        // 기존 열려있는 드롭다운이 있으면 제거하고 함수 종료
+        const opened = document.querySelector('.palette-edit-dropdown');
+        if (opened) {
+            opened.remove();
+            return;
+        }
+
+        // 와이어프레임 색상표(중간 단계) 24개만 사용
+        const dropdown = document.createElement('div');
+        dropdown.className = 'palette-edit-dropdown dropdown-content';
+        dropdown.style.position = 'absolute';
+        dropdown.style.zIndex = 1000;
+
+        // 6x4 표로 24개 색상 표시
+        let html = '<table class="color-table"><tbody>';
+        for (let row = 0; row < 3; row++) {
+            html += '<tr>';
+            for (let col = 0; col < 8; col++) {
+                const paletteIdx = row * 8 + col;
+                html += `<td data-idx="${paletteIdx}" style="cursor:pointer;">
+                    <div class="palette-cell">
+                        <span class="color-indicator" style="background:${getCurrentWireframeFinalColor(paletteIdx)}"></span>
+                        <span>${paletteIdx}</span>
+                    </div>
+                </td>`;
+            }
+            html += '</tr>';
+        }
+        html += '</tbody></table>';
+        dropdown.innerHTML = html;
+
+        // 팔레트 셀 클릭 이벤트
+        dropdown.querySelectorAll('td[data-idx]').forEach(td => {
+            td.addEventListener('click', function() {
+                const paletteIdx = Number(this.dataset.idx);
+                wireframeFinalEditTargets[idx][1] = paletteIdx; 
+                renderWireframeFinalEditTargets();
+                dropdown.remove();
+            });
+        });
+
+        // 바깥 클릭 시 닫기
+        function closeDropdown(e) {
+            if (!dropdown.contains(e.target) && anchorBtn && !anchorBtn.contains(e.target)) {
+                dropdown.remove();
+                document.removeEventListener('mousedown', closeDropdown);
+            }
+        }
+        setTimeout(() => {
+            document.addEventListener('mousedown', closeDropdown);
+        }, 0);
+
+        // anchorBtn(수정 버튼) 바로 아래에 드롭다운 표시
+        const rect = anchorBtn.getBoundingClientRect();
+        dropdown.style.left = rect.left + window.scrollX + 'px';
+        dropdown.style.top = rect.bottom + window.scrollY + 'px';
+
+        document.body.appendChild(dropdown);
+    }
+
+    // 드롭다운 표 렌더링 함수
+    function renderWireframeFinalTable() {
+        const tableElem = document.getElementById('wireframe-final-table');
+        if (!tableElem) return;
+        let i = 0;
+        let html = '<tbody>';
+        for (let g = 0; g < wireframeFinalGroups.length; g++) {
+            html += '<tr>';
+            // 1열: 그룹명
+            html += `<td class="wireframe-final-label">${wireframeFinalGroups[g]}</td>`;
+            // 2~5열: 각 그룹의 4개 항목
+            const cellCount = (g >= shieldStart && g < zergStart) ? 2 : 4;
+            for (let col = 0; col < cellCount ; col++) {
+                const idx = wireframeFinalIndices[i];
+                const color = getCurrentWireframeFinalColor(idx);
+                html += `
+                    <td data-idx="${idx}" data-i="${i}" style="cursor:pointer;">
+                        <span class="color-indicator" style="background:${color};float:left"></span>
+                        <span class="color-number" style="float:right;">${idx}</span>
+                    </td>
+                `;
+                i++;
+            }
+            // 실드 그룹이면 빈 칸 2개 추가
+            if (cellCount === 2) html += `<td></td><td></td>`;
+            html += '</tr>';
+        }
+        html += '</tbody>';
+        tableElem.innerHTML = html;
+
+        tableElem.querySelectorAll('tr').forEach(tr => {
+            tr.addEventListener('click', function(e) {
+                // 그룹 내 모든 색상 셀(td[data-idx])을 순회
+                this.querySelectorAll('td[data-idx]').forEach(td => {
+                    const i = Number(td.dataset.i);
+                    const name = `${i} (${this.querySelector('.wireframe-final-label').textContent})`;
+                    const idx = td.dataset.idx;
+                    if (!wireframeFinalEditTargets[idx]) {
+                        wireframeFinalEditTargets[i] = [name, idx];
+                    }
+                });
+                renderWireframeFinalEditTargets();
+            });
+        });
+    }
+
     // 모든 팔레트 UI 렌더링
     function renderAllPaletteUIs() {
         paletteUIs.forEach(ui => {
             renderPaletteTable(ui);
             renderPaletteEditTargets(ui);
         });
+        renderWireframeFinalTable();
+        renderWireframeFinalEditTargets();
     }
 
     // 모든 테이블에 클릭 이벤트 연결
