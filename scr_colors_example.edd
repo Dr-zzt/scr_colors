@@ -13,6 +13,7 @@ output: ./output.scx
 ::Dragbox Color Filter: A, 1.0; R, 1.0; G, 0.05; B, 0.6
 ::Shadow Color Filter: A, 1.0; R, 6.0; G, 6.0; B, 6.0
 ::Screen Color Filter: A, 1.0; R, 1.0; G, 1.0; B, 1.0
-256 color palette: 186, 0x00FFFFFF
+256 color palette: 117, 0x00C8A000
+
 :: P1_marine_deaths.AtLeast(1): Selection Circle Palette
 P1_marine_deaths.AtLeast(2): Recover

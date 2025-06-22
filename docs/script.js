@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', function () {
         screen:  { r: 1,      g: 1,      b: 1,     a: 1   }
     };
 
-    // 폼별로 동작을 일반화
     function setupColorFilter(formId, previewId, options = {}) {
         const form = document.getElementById(formId);
         const preview = document.getElementById(previewId);
@@ -32,6 +31,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const b = Math.round(parseFloat(numInputs.b.value) * 255);
             const a = parseFloat(numInputs.a.value);
             preview.style.background = `rgba(${r},${g},${b},${a})`;
+            if (updatePluginInputText) updatePluginInputText();
         }
 
         function syncRangeAndNum(channel, allowMax, disabled = false) {
@@ -77,8 +77,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 updatePreview();
             });
         }
-
-        updatePreview();
     }
 
     setupColorFilter('dragbox-form', 'dragbox-preview');
@@ -160,6 +158,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <button type="button" data-remove="${idx}" style="margin-left:8px;">삭제</button>
             `;
             paletteEditTargetsContainer.appendChild(row);
+            updatePluginInputText();
         });
 
         // 컬러피커 이벤트
@@ -178,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     row.querySelector('input[data-c="b"]').value = b;
                     row.querySelector('.edit-color-preview').style.background = `rgb(${r},${g},${b})`;
                 }
-                renderAllPaletteUIs();
+                renderAllPaletteUIsAndPluginInput();
             });
         });
 
@@ -197,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     row.querySelector('.edit-color-preview').style.background = `rgb(${r},${g},${b})`;
                     row.querySelector('input[type="color"]').value = rgbToHex(r, g, b);
                 }
-                renderAllPaletteUIs();
+                renderAllPaletteUIsAndPluginInput();
             });
         });
 
@@ -207,7 +206,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const idx = this.dataset.remove;
                 delete paletteEditTargets[idx];
                 renderEditTargets();
-                renderAllPaletteUIs();
+                renderAllPaletteUIsAndPluginInput();
             });
         });
     }
@@ -248,6 +247,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 예시: 80개 색상
     const wireframeIntermediateEditTargets = {};
+    const wireframeFinalEditTargets = {};
 
     const paletteUIs = [
         {
@@ -267,22 +267,7 @@ document.addEventListener('DOMContentLoaded', function () {
         {
             // 기타 색
             names: [
-                '초상화 노이즈 색 0',
-                '초상화 노이즈 색 1',
-                '초상화 노이즈 색 2',
-                '초상화 노이즈 색 3',
-                '초상화 노이즈 색 4',
-                '초상화 노이즈 색 5',
-                '초상화 노이즈 색 6',
-                '초상화 노이즈 색 7',
-                '초상화 노이즈 색 8',
-                '초상화 노이즈 색 9',
-                '초상화 노이즈 색 10',
-                '초상화 노이즈 색 11',
-                '초상화 노이즈 색 12',
-                '초상화 노이즈 색 13',
-                '초상화 노이즈 색 14',
-                '초상화 노이즈 색 15',
+                ...Array.from({length: 16}, (_, i) => `초상화 노이즈 색 ${i}`),
                 '버튼 툴팁 내부 색',
                 '버튼 툴팁 테두리 색',
                 '미니맵 아군 색',
@@ -380,6 +365,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 <button type="button" data-remove="${name}" style="margin-left:8px;">삭제</button>
             `;
             editTargetsElem.appendChild(row);
+            if (updatePluginInputText) {
+                updatePluginInputText();
+            }
         });
 
         // 삭제 버튼 이벤트
@@ -387,7 +375,7 @@ document.addEventListener('DOMContentLoaded', function () {
             btn.addEventListener('click', function() {
                 const name = this.dataset.remove;
                 delete editTargets[name];
-                renderAllPaletteUIs();
+                renderAllPaletteUIsAndPluginInput();
             });
         });
 
@@ -395,7 +383,7 @@ document.addEventListener('DOMContentLoaded', function () {
         editTargetsElem.querySelectorAll('button[data-edit]').forEach(btn => {
             btn.addEventListener('click', function() {
                 const name = this.dataset.edit;
-                showPaletteDropdownForEditGeneric(name, btn, editTargets, renderAllPaletteUIs);
+                showPaletteDropdownForEditGeneric(name, btn, editTargets, renderAllPaletteUIsAndPluginInput);
             });
         });
     }
@@ -485,8 +473,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const shieldStart = wireframeFinalGroups.indexOf('실드 0/7');
     const zergStart = wireframeFinalGroups.indexOf('저그 0/5');
 
-    const wireframeFinalEditTargets = {};
-
     // wireframeFinalPalette는 256색 팔레트 배열(수정사항 반영 함수 사용)
     function getCurrentWireframeFinalColor(idx) {
         let intermediateIdx;
@@ -505,8 +491,8 @@ document.addEventListener('DOMContentLoaded', function () {
         editTargetsElem.innerHTML = '';
 
         // wireframeFinalEditTargets는 인덱스 기반 객체 또는 배열
-        Object.entries(wireframeFinalEditTargets).forEach(([i, name_and_idx]) => {
-            const [name, colorIdx] = name_and_idx;
+        Object.entries(wireframeFinalEditTargets).forEach(([i, data]) => {
+            const { name, colorIdx } = data;
             const color = getCurrentWireframeFinalColor(Number(colorIdx));
 
             const row = document.createElement('div');
@@ -526,7 +512,7 @@ document.addEventListener('DOMContentLoaded', function () {
             btn.addEventListener('click', function() {
                 const idx = this.dataset.remove;
                 delete wireframeFinalEditTargets[idx];
-                renderWireframeFinalEditTargets();
+                renderAllPaletteUIsAndPluginInput();
             });
         });
 
@@ -575,8 +561,8 @@ document.addEventListener('DOMContentLoaded', function () {
         dropdown.querySelectorAll('td[data-idx]').forEach(td => {
             td.addEventListener('click', function() {
                 const paletteIdx = Number(this.dataset.idx);
-                wireframeFinalEditTargets[idx][1] = paletteIdx; 
-                renderWireframeFinalEditTargets();
+                wireframeFinalEditTargets[idx].colorIdx = paletteIdx; 
+                renderAllPaletteUIsAndPluginInput();
                 dropdown.remove();
             });
         });
@@ -638,22 +624,23 @@ document.addEventListener('DOMContentLoaded', function () {
                     const name = `${i} (${this.querySelector('.wireframe-final-label').textContent})`;
                     const idx = td.dataset.idx;
                     if (!wireframeFinalEditTargets[idx]) {
-                        wireframeFinalEditTargets[i] = [name, idx];
+                        wireframeFinalEditTargets[i] = {'name': name, 'colorIdx': idx};
                     }
                 });
-                renderWireframeFinalEditTargets();
+                renderAllPaletteUIsAndPluginInput();
             });
         });
     }
 
     // 모든 팔레트 UI 렌더링
-    function renderAllPaletteUIs() {
+    function renderAllPaletteUIsAndPluginInput() {
         paletteUIs.forEach(ui => {
             renderPaletteTable(ui);
             renderPaletteEditTargets(ui);
         });
         renderWireframeFinalTable();
         renderWireframeFinalEditTargets();
+        updatePluginInputText();
     }
 
     // 모든 테이블에 클릭 이벤트 연결
@@ -665,8 +652,168 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // 타일셋 변경 시 전체 갱신
-    tilesetSelect.addEventListener('change', renderAllPaletteUIs);
+    tilesetSelect.addEventListener('change', renderAllPaletteUIsAndPluginInput);
 
     // 초기 렌더링
-    renderAllPaletteUIs();
+    renderAllPaletteUIsAndPluginInput();
+
+    // 복사 버튼 클릭 이벤트
+    document.getElementById('copy-plugin-input-btn').addEventListener('click', function() {
+        const pre = document.getElementById('plugin-input-pre');
+        const text = pre.textContent;
+
+        // 클립보드에 복사
+        navigator.clipboard.writeText(text).then(() => {
+            // 메시지 표시
+            let msg = document.getElementById('copy-plugin-msg');
+            if (!msg) {
+                msg = document.createElement('span');
+                msg.id = 'copy-plugin-msg';
+                msg.textContent = '복사되었습니다!';
+                msg.style.marginLeft = '12px';
+                this.parentNode.appendChild(msg);
+            }
+            msg.style.display = 'inline';
+
+            // 2초 후 메시지 숨김
+            setTimeout(() => {
+                msg.style.display = 'none';
+            }, 2000);
+        });
+    });
+
+    function updatePluginInputText() {
+        let lines = [];
+
+        // 1. Wireframe Color (와이어프레임 색)
+        // wireframeFinalEditTargets: { idx: [name, colorIdx] }
+        let wireframeColors = [];
+        Object.entries(wireframeFinalEditTargets).forEach(([i, data]) => {
+            const { colorIdx } = data;
+            wireframeColors.push(`${i}, ${colorIdx}`); 
+        });
+        if (wireframeColors.length)
+            lines.push('Wireframe Color: ' + wireframeColors.join('; '));
+
+        // 2. Wireframe Palette (와이어프레임 색상표)
+        // wireframeIntermediateEditTargets: { idx: colorIdx }
+        let wireframePalettes = [];
+        Object.entries(wireframeIntermediateEditTargets).forEach(([idx, data]) => {
+            const { colorIdx } = data;
+            console.log(idx, colorIdx);
+            wireframePalettes.push(`${idx}, ${colorIdx}`);
+        });
+        if (wireframePalettes.length)
+            lines.push('Wireframe Palette: ' + wireframePalettes.join('; '));
+
+        // 3. Selection Circle Palette
+        // paletteUIs에서 selection-circle 관련 editTargets
+        let selectionCircle = [];
+        const selectionCircleUI = paletteUIs.find(ui => ui.tableId === 'selection-circle-table');
+        if (selectionCircleUI) {
+            Object.entries(selectionCircleUI.editTargets).forEach(([name, data]) => {
+                selectionCircle.push(`${data.name.match(/(\d+)/)?.[0] || data.name}, ${data.colorIdx}`);
+            });
+        }
+        if (selectionCircle.length)
+            lines.push('Selection Circle Palette: ' + selectionCircle.join('; '));
+
+        // 4. Text Palette
+        // paletteUIs에서 textcode-table 관련 editTargets
+        let textPalette = [];
+        const textcodeUI = paletteUIs.find(ui => ui.tableId === 'textcode-table');
+        if (textcodeUI) {
+            Object.entries(textcodeUI.editTargets).forEach(([name, data]) => {
+                // name이 \로 시작하면 0으로 대체
+                let nameKey = data.name.startsWith('\\') ? '0' + data.name.slice(1) : data.name;
+                textPalette.push(`${nameKey}, ${data.colorIdx}`);
+            });
+        }
+        if (textPalette.length)
+            lines.push('Text Palette: ' + textPalette.join('; '));
+
+        // 5. Misc Palette
+        // Misc Palette 이름 변환 테이블 (0~15까지 자동 생성)
+        const miscPaletteNameTable = {};
+        for (let i = 0; i < 16; i++) {
+            miscPaletteNameTable[`초상화 노이즈 색 ${i}`] = `P${i}`;
+        }
+        Object.assign(miscPaletteNameTable, {
+            '버튼 툴팁 내부 색': 'fill',
+            '버튼 툴팁 테두리 색': 'line',
+            '미니맵 아군 색': 'self',
+            '미니맵 자원 색': 'res'
+        });
+        // paletteUIs에서 misc-table 관련 editTargets
+        let miscPalette = [];
+        const miscUI = paletteUIs.find(ui => ui.tableId === 'misc-table');
+        if (miscUI) {
+            Object.entries(miscUI.editTargets).forEach(([name, data]) => {
+                miscPalette.push(`${miscPaletteNameTable[name]}, ${data.colorIdx}`);
+            });
+        }
+        if (miscPalette.length)
+            lines.push('Misc Palette: ' + miscPalette.join('; '));
+
+        // 항상 소수점 한 자리(.0)까지 표기
+        function formatFloat(val) {
+            return Number(val).toFixed(1);
+        }
+
+        // 6. Dragbox Color Filter
+        // 폼에서 값 읽기
+        const dragbox = document.getElementById('dragbox-form');
+        if (dragbox) {
+            const A = dragbox.querySelector('input[name="a-num"]').value;
+            const R = dragbox.querySelector('input[name="r-num"]').value;
+            const G = dragbox.querySelector('input[name="g-num"]').value;
+            const B = dragbox.querySelector('input[name="b-num"]').value;
+            
+            if (!(A === "1" && R === "0.0625" && G === "0.9875" && B === "0.094")) {
+                lines.push(
+                    `Dragbox Color Filter: A, ${formatFloat(A)}; R, ${formatFloat(R)}; G, ${formatFloat(G)}; B, ${formatFloat(B)}`
+                );
+            }
+        }
+
+        // 7. Shadow Color Filter
+        const shadow = document.getElementById('shadow-form');
+        if (shadow) {
+            const A = shadow.querySelector('input[name="a-num"]').value;
+            const R = shadow.querySelector('input[name="r-num"]').value;
+            const G = shadow.querySelector('input[name="g-num"]').value;
+            const B = shadow.querySelector('input[name="b-num"]').value;
+            if (!(A === "1" && R === "0" && G === "0" && B === "0")) {
+                lines.push(
+                    `Shadow Color Filter: A, ${formatFloat(A)}; R, ${formatFloat(R)}; G, ${formatFloat(G)}; B, ${formatFloat(B)}`
+                );
+            }
+        }
+
+        // 8. Screen Color Filter
+        const screen = document.getElementById('screen-form');
+        if (screen) {
+            const A = screen.querySelector('input[name="a-num"]').value;
+            const R = screen.querySelector('input[name="r-num"]').value;
+            const G = screen.querySelector('input[name="g-num"]').value;
+            const B = screen.querySelector('input[name="b-num"]').value;
+            if (!(A === "1" && R === "1" && G === "1" && B === "1")) {
+                lines.push(
+                    `Screen Color Filter: A, ${formatFloat(A)}; R, ${formatFloat(R)}; G, ${formatFloat(G)}; B, ${formatFloat(B)}`
+                );
+            }
+        }
+
+        // 9. 256 color palette (paletteEditTargets)
+        let paletteLines = [];
+        Object.entries(paletteEditTargets).forEach(([idx, rgb]) => {
+            const hex = rgbToHex(rgb.b, rgb.g, rgb.r).toUpperCase(); // 여기는 BGR 순서로 변환
+            paletteLines.push(`${idx}, 0x00${hex.substring(1)}`);
+        });
+        if (paletteLines.length)
+            lines.push('256 color palette: ' + paletteLines.join('; '));
+
+        document.getElementById('plugin-input-pre').textContent = lines.join('\n');
+    }
+
 });
