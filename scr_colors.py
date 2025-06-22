@@ -206,8 +206,10 @@ for key, value in settings.items():
 					offset = dec_or_hex_to_int(offset)
 					assert check_in_range(offset, shkey), f"Offset {offset} is out of range for {key}."
 
-				if key == "selection circle palette":
+				if shkey == "scp":
 					epd, lsh = 8 * offset // 4, 3
+				elif shkey == "256p":
+					epd, lsh = offset, 0
 				else:
 					epd, lsh = divmod(offset, 4)
 
